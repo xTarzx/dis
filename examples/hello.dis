@@ -1,0 +1,11 @@
+mov .H  &0
+mov .e  &1
+mov .l  &2
+mov .l  &3
+mov .o  &4
+mov 10  &5
+mov 0 #0
+print: out &#0
+add 1 #0
+cmp 0 &#0
+jne print

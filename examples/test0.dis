@@ -1,0 +1,14 @@
+mov 119  &0
+mov 97   &1
+mov 107  &2
+mov 97   &3
+mov 110  &4
+mov 100  &5
+mov 97   &6
+mov 10   &7
+mov 0    &8
+mov 0    #0
+print: out &#0
+add 1 #0
+cmp 0 &#0
+jne print
