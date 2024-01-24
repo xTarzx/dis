@@ -854,7 +854,7 @@ impl DIS {
                             mem_t = MemT::ADR(m_n);
                         }
 
-                        token.itype = IType::OUT(ArgT::MEM(mem_t));
+                        token.itype = IType::PRT(ArgT::MEM(mem_t));
                     } else if arg.starts_with(".") {
                         let c = arg.chars().nth(1).unwrap();
 

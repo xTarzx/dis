@@ -1,0 +1,24 @@
+
+mov 4 #0
+run mod3
+dbg #2
+die
+
+
+- mod3( #0 ) -> #2
+mod3:
+- initialize &0
+mov #0 &0
+
+mod3_loop:
+- if &0 < 3, put &0 in #2 and return
+- else keep subtracting
+cmp 3 &0
+jgt mod3_return
+sub 3 &0
+jmp mod3_loop
+
+mod3_return:
+mov &0 #2
+ret
+

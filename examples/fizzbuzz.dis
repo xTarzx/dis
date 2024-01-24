@@ -1,0 +1,71 @@
+- fizzbuzz 5
+
+mov 0 &0
+mov 5 &1
+
+
+loop:
+mov &0 #0
+mov 0 &80
+
+mov 3 #1
+run mod
+cmp 0 #2
+jne skip_fizz
+run print_fizz
+mov 1 &80
+
+skip_fizz:
+mov 5 #1
+run mod
+cmp 0 #2
+jne skip_buzz
+run print_buzz
+mov 1 &80
+
+skip_buzz:
+
+cmp 0 &80
+jne skip_print
+prt &0
+skip_print:
+run print_nl
+add 1 &0
+cmp &0 &1
+jlt loop
+
+die
+
+
+
+
+- mod ( #0 #1 ) -> #2
+mod:
+mov #0 &91
+mov #1 &92
+mod_loop:
+cmp &92 &91
+jgt mod_return
+sub &92 &91
+jmp mod_loop
+mod_return:
+mov &91 #2
+ret
+
+print_nl:
+out 10
+ret
+
+print_fizz:
+out .F
+out .i
+out .z
+out .z
+ret
+
+print_buzz:
+out .B
+out .u
+out .z
+out .z
+ret
