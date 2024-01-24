@@ -162,6 +162,13 @@
     out #0
     prints 'a'
   ```
+- PRT: `prt <REG | MEM>`
+  print value
+  ```
+    mov 97 #0
+    out #0
+    prints '97'
+  ```
 
 ## Example
 
