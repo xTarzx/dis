@@ -1,7 +1,7 @@
-- fizzbuzz 5
+- fizzbuzz
 
-mov 0 &0
-mov 5 &1
+mov 1 &0
+mov 21 &1
 
 
 loop:
