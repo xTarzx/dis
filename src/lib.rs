@@ -29,6 +29,9 @@ enum IType {
     JEQ(ArgT),
     JNE(ArgT),
     JMP(ArgT),
+    RUN(ArgT),
+    RET,
+    DIE,
     DBG(ArgT),
     OUT(ArgT),
     NULL,
@@ -49,8 +52,8 @@ pub struct DIS {
     registers: [u8; REG_N],
     memory: [u8; MEM_N],
 
-    _stack: [u8; STK_N],
-    _sp: usize,
+    ret_stack: [usize; STK_N],
+    sp: usize,
 
     cmp: u8,
 
@@ -68,8 +71,8 @@ impl DIS {
             memory: [0; MEM_N],
             pc: 0,
 
-            _stack: [0; STK_N],
-            _sp: 0,
+            ret_stack: [0; STK_N],
+            sp: 0,
 
             program: Vec::new(),
 
@@ -530,6 +533,28 @@ impl DIS {
 
                     token.itype = IType::JMP(ArgT::LBL(arg.to_string()));
                 }
+                "run" => {
+                    if words.len() != 1 {
+                        return Err(format!("Invalid number of arguments for run: {}", line));
+                    }
+
+                    let arg = words.pop_front().unwrap();
+                    token.itype = IType::RUN(ArgT::LBL(arg.to_string()));
+                }
+                "ret" => {
+                    if words.len() != 0 {
+                        return Err(format!("Invalid number of arguments for ret: {}", line));
+                    }
+
+                    token.itype = IType::RET;
+                }
+                "die" => {
+                    if words.len() != 0 {
+                        return Err(format!("Invalid number of arguments for die: {}", line));
+                    }
+
+                    token.itype = IType::DIE;
+                }
                 "out" => {
                     if words.len() != 1 {
                         return Err(format!("Invalid number of arguments for out: {}", line));
@@ -671,6 +696,12 @@ impl DIS {
                 }
 
                 IType::JMP(ArgT::LBL(l)) => {
+                    if !self.label_map.contains_key(l) {
+                        return Err(format!("Unknown label: {}", l));
+                    }
+                }
+
+                IType::RUN(ArgT::LBL(l)) => {
                     if !self.label_map.contains_key(l) {
                         return Err(format!("Unknown label: {}", l));
                     }
@@ -845,6 +876,21 @@ impl DIS {
 
                 IType::JMP(ArgT::LBL(l)) => {
                     self.pc = self.label_map[l].overflowing_sub(1).0;
+                }
+
+                IType::RUN(ArgT::LBL(l)) => {
+                    self.ret_stack[self.sp] = self.pc;
+                    self.sp = self.sp.overflowing_add(1).0;
+                    self.pc = self.label_map[l].overflowing_sub(1).0;
+                }
+
+                IType::RET => {
+                    self.sp = self.sp.overflowing_sub(1).0;
+                    self.pc = self.ret_stack[self.sp];
+                }
+
+                IType::DIE => {
+                    return;
                 }
 
                 IType::OUT(arg) => match arg {

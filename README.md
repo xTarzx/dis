@@ -125,6 +125,26 @@
     jump to label0
   ```
 
+- RUN: `run <LBL>`
+  push current instruction address to stack and jump to label
+
+  ```
+  run label0
+  ```
+
+- RET: `ret`
+  pops address from stack and jumps to it
+
+  ```
+  run label0
+
+  label0:
+  ret
+  ```
+
+- DIE: `die`
+  ends program
+
 - OUT: `out <REG | MEM>`
   print char
   ```
