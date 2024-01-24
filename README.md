@@ -1,6 +1,14 @@
 # DIS - Dumb Instruction System
 
-## Arguments
+## Syntax
+
+- COMMENTS: `-`
+  lines starting with '-' are ignored
+
+  ```
+  - this is a comment
+  add 2 #2
+  ```
 
 - NUM: `<number>`
   ```
@@ -35,12 +43,13 @@
   memory at address of value in register 1
   ```
 
-- LBL: `<label>:`
-  labels are set in beginning of line (optional)
-
+- LBL: `<label>`
+  labels are set in beggining of line
+  lines can have just a label
   ```
-  label0: ...
-  label1: mov 1 #0
+  label0:
+  label1: add 1 #0
+  jmp label0
   ```
 
 ## Instructions
