@@ -28,6 +28,7 @@ enum IType {
     JGT(ArgT),
     JEQ(ArgT),
     JNE(ArgT),
+    JMP(ArgT),
     DBG(ArgT),
     OUT(ArgT),
     NULL,
@@ -82,6 +83,9 @@ impl DIS {
         let mut program: Vec<Token> = Vec::new();
 
         for line in source.lines() {
+            if line.starts_with("-") {
+                continue;
+            }
             let mut words: VecDeque<&str> = line.split_whitespace().collect();
 
             if words.len() == 0 {
@@ -98,9 +102,14 @@ impl DIS {
             if word.ends_with(':') {
                 token.label = Some(word[..word.len() - 1].to_string());
 
-                word = words
-                    .pop_front()
-                    .ok_or(format!("Missing instruction: {}", line))?;
+                let next = words.pop_front();
+
+                if next.is_none() {
+                    program.push(token);
+                    continue;
+                }
+
+                word = next.unwrap();
             }
 
             match word {
@@ -249,6 +258,37 @@ impl DIS {
                             }
 
                             ArgT::REG(r_n)
+                        } else if arg.starts_with("&") {
+                            let mem_t: MemT;
+                            if arg[1..].starts_with("#") {
+                                let r_n = match arg[2..].parse::<usize>() {
+                                    Ok(n) => n,
+                                    Err(_) => {
+                                        return Err(format!("Expected a number after '#': {}", arg))
+                                    }
+                                };
+
+                                if r_n >= REG_N {
+                                    return Err(format!("Invalid register number: {}", r_n));
+                                }
+
+                                mem_t = MemT::REG(r_n);
+                            } else {
+                                let m_n = match arg[1..].parse::<usize>() {
+                                    Ok(n) => n,
+                                    Err(_) => {
+                                        return Err(format!("Expected a number after '&': {}", arg))
+                                    }
+                                };
+
+                                if m_n >= MEM_N {
+                                    return Err(format!("Invalid memory address: {}", m_n));
+                                }
+
+                                mem_t = MemT::ADR(m_n);
+                            }
+
+                            ArgT::MEM(mem_t)
                         } else if arg.starts_with(".") {
                             let c = arg.chars().nth(1).unwrap();
 
@@ -281,6 +321,37 @@ impl DIS {
                             }
 
                             ArgT::REG(r_n)
+                        } else if arg.starts_with("&") {
+                            let mem_t: MemT;
+                            if arg[1..].starts_with("#") {
+                                let r_n = match arg[2..].parse::<usize>() {
+                                    Ok(n) => n,
+                                    Err(_) => {
+                                        return Err(format!("Expected a number after '#': {}", arg))
+                                    }
+                                };
+
+                                if r_n >= REG_N {
+                                    return Err(format!("Invalid register number: {}", r_n));
+                                }
+
+                                mem_t = MemT::REG(r_n);
+                            } else {
+                                let m_n = match arg[1..].parse::<usize>() {
+                                    Ok(n) => n,
+                                    Err(_) => {
+                                        return Err(format!("Expected a number after '&': {}", arg))
+                                    }
+                                };
+
+                                if m_n >= MEM_N {
+                                    return Err(format!("Invalid memory address: {}", m_n));
+                                }
+
+                                mem_t = MemT::ADR(m_n);
+                            }
+
+                            ArgT::MEM(mem_t)
                         } else {
                             return Err(format!("Expected a register: {}", arg));
                         }
@@ -449,6 +520,16 @@ impl DIS {
 
                     token.itype = IType::JNE(ArgT::LBL(arg.to_string()));
                 }
+
+                "jmp" => {
+                    if words.len() != 1 {
+                        return Err(format!("Invalid number of arguments for jmp: {}", line));
+                    }
+
+                    let arg = words.pop_front().unwrap();
+
+                    token.itype = IType::JMP(ArgT::LBL(arg.to_string()));
+                }
                 "out" => {
                     if words.len() != 1 {
                         return Err(format!("Invalid number of arguments for out: {}", line));
@@ -588,6 +669,12 @@ impl DIS {
                         return Err(format!("Unknown label: {}", l));
                     }
                 }
+
+                IType::JMP(ArgT::LBL(l)) => {
+                    if !self.label_map.contains_key(l) {
+                        return Err(format!("Unknown label: {}", l));
+                    }
+                }
                 _ => {}
             }
         }
@@ -659,15 +746,36 @@ impl DIS {
                     };
                 }
 
-                IType::ADD(arg1, ArgT::REG(dst)) => {
+                IType::ADD(arg1, arg2) => {
                     let src = match arg1 {
                         ArgT::NUM(n) => *n,
                         ArgT::CHR(c) => *c as u8,
                         ArgT::REG(r_n) => self.registers[*r_n],
+                        ArgT::MEM(mem_t) => match mem_t {
+                            MemT::ADR(m_n) => self.memory[*m_n],
+                            MemT::REG(r_n) => {
+                                let m_n = self.registers[*r_n] as usize;
+                                self.memory[m_n]
+                            }
+                        },
                         other => unreachable!("UNREACHABLE: {:?}", other),
                     };
 
-                    self.registers[*dst] = self.registers[*dst].overflowing_add(src).0;
+                    match arg2 {
+                        ArgT::REG(dst) => {
+                            self.registers[*dst] = self.registers[*dst].overflowing_add(src).0;
+                        }
+                        ArgT::MEM(mem_t) => match mem_t {
+                            MemT::ADR(m_n) => {
+                                self.memory[*m_n] = self.memory[*m_n].overflowing_add(src).0;
+                            }
+                            MemT::REG(r_n) => {
+                                let m_n = self.registers[*r_n] as usize;
+                                self.memory[m_n] = self.memory[m_n].overflowing_add(src).0;
+                            }
+                        },
+                        other => unreachable!("UNREACHABLE: {:?}", other),
+                    }
                 }
 
                 IType::CMP(arg1, arg2) => {
@@ -675,6 +783,13 @@ impl DIS {
                         ArgT::NUM(n) => *n,
                         ArgT::CHR(c) => *c as u8,
                         ArgT::REG(r_n) => self.registers[*r_n],
+                        ArgT::MEM(mem_t) => match mem_t {
+                            MemT::ADR(m_n) => self.memory[*m_n],
+                            MemT::REG(r_n) => {
+                                let m_n = self.registers[*r_n] as usize;
+                                self.memory[m_n]
+                            }
+                        },
                         other => unreachable!("UNREACHABLE: {:?}", other),
                     };
 
@@ -726,6 +841,10 @@ impl DIS {
                     if self.cmp & CMP::EQ as u8 == 0 {
                         self.pc = self.label_map[l].overflowing_sub(1).0;
                     }
+                }
+
+                IType::JMP(ArgT::LBL(l)) => {
+                    self.pc = self.label_map[l].overflowing_sub(1).0;
                 }
 
                 IType::OUT(arg) => match arg {

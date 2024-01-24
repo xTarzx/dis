@@ -1,0 +1,45 @@
+- #0 = n
+- &0 = a
+- &1 = b
+- &2 = c
+- &5 = i
+
+- n - nth fibonacci number
+mov 6 #0
+dbg #0
+
+- a = 0
+- b = 1
+- i = 3
+mov 0 &0
+mov 1 &1
+mov 1 &5
+
+- if n == 0 jump to end
+cmp 0 #0
+- jump to loop if n > 0
+jne loop
+
+- print a and exit
+dbg &0
+jmp end
+
+loop:
+- c = a + b
+mov &0 &2
+add &1 &2
+- a = b
+mov &1 &0
+- b = c
+mov &2 &1
+
+- increment i
+add 1 &5
+
+- if i < n jump to loop
+cmp &5 #0
+jlt loop
+
+- print b
+dbg &1
+end:

@@ -55,7 +55,7 @@
     set memory at address of value in register 0 to value in register 1
   ```
 
-- ADD: `add <NUM | REG | CHR> <REG>`
+- ADD: `add <NUM | REG | MEM | CHR> <REG | MEM>`
 
   ```
     add 3 #0
@@ -106,6 +106,14 @@
   ```
     jne label0
     jump to label0 if '=' bit is not set
+  ```
+
+- JMP: `jmp <LBL>`
+  jump to label
+
+  ```
+    jmp label0
+    jump to label0
   ```
 
 - OUT: `out <REG | MEM>`
