@@ -35,6 +35,7 @@ enum IType {
     DIE,
     DBG(ArgT),
     OUT(ArgT),
+    PRT(ArgT),
     NULL,
 }
 enum CMP {
@@ -785,6 +786,60 @@ impl DIS {
                         return Err(format!("Expected a register or memory address: {}", line));
                     }
                 }
+                "prt" => {
+                    if words.len() != 1 {
+                        return Err(format!("Invalid number of arguments for prt: {}", line));
+                    }
+
+                    let arg = words.pop_front().unwrap();
+
+                    if arg.starts_with('#') {
+                        // register
+                        let r_n = match arg[1..].parse::<usize>() {
+                            Ok(n) => n,
+                            Err(_) => return Err(format!("Expected a number after '#': {}", arg)),
+                        };
+
+                        if r_n >= REG_N {
+                            return Err(format!("Invalid register number: {}", r_n));
+                        }
+
+                        token.itype = IType::PRT(ArgT::REG(r_n));
+                    } else if arg.starts_with("&") {
+                        let mem_t: MemT;
+                        if arg[1..].starts_with("#") {
+                            let r_n = match arg[2..].parse::<usize>() {
+                                Ok(n) => n,
+                                Err(_) => {
+                                    return Err(format!("Expected a number after '#': {}", arg))
+                                }
+                            };
+
+                            if r_n >= REG_N {
+                                return Err(format!("Invalid register number: {}", r_n));
+                            }
+
+                            mem_t = MemT::REG(r_n);
+                        } else {
+                            let m_n = match arg[1..].parse::<usize>() {
+                                Ok(n) => n,
+                                Err(_) => {
+                                    return Err(format!("Expected a number after '&': {}", arg))
+                                }
+                            };
+
+                            if m_n >= MEM_N {
+                                return Err(format!("Invalid memory address: {}", m_n));
+                            }
+                            mem_t = MemT::ADR(m_n);
+                        }
+
+                        token.itype = IType::OUT(ArgT::MEM(mem_t));
+                    } else {
+                        return Err(format!("Expected a register or memory address: {}", line));
+                    }
+                }
+
                 _ => return Err(format!("Unknown instruction: {}", word)),
             }
 
@@ -1075,6 +1130,22 @@ impl DIS {
                         MemT::REG(r_n) => {
                             let m_n = self.registers[*r_n] as usize;
                             println!("DBG &#{} (&{}): {}", *r_n, m_n, self.memory[m_n]);
+                        }
+                    },
+                    other => unreachable!("UNREACHABLE: {:?}", other),
+                },
+
+                IType::PRT(arg) => match arg {
+                    ArgT::REG(r_n) => {
+                        print!("{}", self.registers[*r_n]);
+                    }
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => {
+                            print!("{}", self.memory[*m_n]);
+                        }
+                        MemT::REG(r_n) => {
+                            let m_n = self.registers[*r_n] as usize;
+                            print!("{}", self.memory[m_n]);
                         }
                     },
                     other => unreachable!("UNREACHABLE: {:?}", other),
