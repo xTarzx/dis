@@ -64,7 +64,7 @@
     set memory at address of value in register 0 to value in register 1
   ```
 
-- ADD: `add <NUM | REG | MEM | CHR> <REG | MEM>`
+- ADD: `add <NUM | REG | MEM | CHR> <NUM | REG | MEM | CHR>`
 
   ```
     add 3 #0
@@ -72,6 +72,16 @@
 
     add .a #1
     increment value in register 0 by ascii valye of 'a' (97)
+  ```
+
+- SUB: `sub <NUM | REG | MEM | CHR> <NUM | REG | MEM | CHR>`
+
+  ```
+    sub 3 #0
+    dec value in register 0 by 3
+
+    sub .a #1
+    dec value in register 0 by ascii valye of 'a' (97)
   ```
 
 - CMP: `cmp <NUM | REG | MEM | CHR> <REG | MEM>`
