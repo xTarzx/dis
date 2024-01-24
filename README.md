@@ -155,14 +155,14 @@
 - DIE: `die`
   ends program
 
-- OUT: `out <REG | MEM>`
+- OUT: `out <NUM | REG | MEM | CHR>`
   print char
   ```
     mov 97 #0
     out #0
     prints 'a'
   ```
-- PRT: `prt <REG | MEM>`
+- PRT: `prt <NUM | REG | MEM | CHR>`
   print value
   ```
     mov 97 #0

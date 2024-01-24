@@ -729,8 +729,18 @@ impl DIS {
                         }
 
                         token.itype = IType::OUT(ArgT::MEM(mem_t));
+                    } else if arg.starts_with(".") {
+                        let c = arg.chars().nth(1).unwrap();
+
+                        token.itype = IType::OUT(ArgT::CHR(c));
                     } else {
-                        return Err(format!("Expected a register or memory address: {}", line));
+                        // number
+                        let n = match arg.parse::<u8>() {
+                            Ok(n) => n,
+                            Err(_) => return Err(format!("Expected a number: {}", arg)),
+                        };
+
+                        token.itype = IType::OUT(ArgT::NUM(n));
                     }
                 }
                 "dbg" => {
@@ -782,8 +792,18 @@ impl DIS {
                         }
 
                         token.itype = IType::DBG(ArgT::MEM(mem_t));
+                    } else if arg.starts_with(".") {
+                        let c = arg.chars().nth(1).unwrap();
+
+                        token.itype = IType::DBG(ArgT::CHR(c));
                     } else {
-                        return Err(format!("Expected a register or memory address: {}", line));
+                        // number
+                        let n = match arg.parse::<u8>() {
+                            Ok(n) => n,
+                            Err(_) => return Err(format!("Expected a number: {}", arg)),
+                        };
+
+                        token.itype = IType::DBG(ArgT::NUM(n));
                     }
                 }
                 "prt" => {
@@ -835,8 +855,18 @@ impl DIS {
                         }
 
                         token.itype = IType::OUT(ArgT::MEM(mem_t));
+                    } else if arg.starts_with(".") {
+                        let c = arg.chars().nth(1).unwrap();
+
+                        token.itype = IType::PRT(ArgT::CHR(c));
                     } else {
-                        return Err(format!("Expected a register or memory address: {}", line));
+                        // number
+                        let n = match arg.parse::<u8>() {
+                            Ok(n) => n,
+                            Err(_) => return Err(format!("Expected a number: {}", arg)),
+                        };
+
+                        token.itype = IType::PRT(ArgT::NUM(n));
                     }
                 }
 
@@ -1104,6 +1134,14 @@ impl DIS {
                 }
 
                 IType::OUT(arg) => match arg {
+                    ArgT::NUM(n) => {
+                        print!("{}", *n as char);
+                    }
+
+                    ArgT::CHR(c) => {
+                        print!("{}", *c as char);
+                    }
+
                     ArgT::REG(r_n) => {
                         print!("{}", self.registers[*r_n] as char);
                     }
@@ -1120,6 +1158,14 @@ impl DIS {
                 },
 
                 IType::DBG(arg) => match arg {
+                    ArgT::NUM(n) => {
+                        println!("DBG #: {}", *n);
+                    }
+
+                    ArgT::CHR(c) => {
+                        println!("DBG #: {} ({})", *c, *c as u8);
+                    }
+
                     ArgT::REG(r_n) => {
                         println!("DBG #{}: {}", *r_n, self.registers[*r_n]);
                     }
@@ -1136,6 +1182,14 @@ impl DIS {
                 },
 
                 IType::PRT(arg) => match arg {
+                    ArgT::NUM(n) => {
+                        print!("{}", *n);
+                    }
+
+                    ArgT::CHR(c) => {
+                        print!("{}", *c as u8);
+                    }
+
                     ArgT::REG(r_n) => {
                         print!("{}", self.registers[*r_n]);
                     }
