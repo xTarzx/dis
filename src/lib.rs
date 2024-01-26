@@ -4,19 +4,90 @@ const REG_N: usize = 4;
 const MEM_N: usize = 4096;
 const STK_N: usize = 256;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum MemT {
     ADR(usize),
     REG(usize),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum ArgT {
     NUM(u8),
     REG(usize),
     MEM(MemT),
     CHR(char),
     LBL(String),
+}
+
+impl ArgT {
+    pub fn parse(words: &mut VecDeque<&str>, arg_types: Vec<u8>) -> Result<ArgT, String> {
+        let arg = words.pop_front().unwrap();
+
+        if arg_types.contains(&(ArgT::LBL as u8)) {
+            return Ok(ArgT::LBL(arg.to_string()));
+        }
+
+        if arg_types.contains(&(ArgT::REG as u8)) && arg.starts_with('#') {
+            // register
+            let r_n = match arg[1..].parse::<usize>() {
+                Ok(n) => n,
+                Err(_) => return Err(format!("Expected a number after '#': {}", arg)),
+            };
+
+            if r_n >= REG_N {
+                return Err(format!("Invalid register number: {}", r_n));
+            }
+
+            return Ok(ArgT::REG(r_n));
+        }
+
+        if arg_types.contains(&(ArgT::MEM as u8)) && arg.starts_with("&") {
+            let mem_t: MemT;
+            if arg[1..].starts_with("#") {
+                let r_n = match arg[2..].parse::<usize>() {
+                    Ok(n) => n,
+                    Err(_) => return Err(format!("Expected a number after '#': {}", arg)),
+                };
+
+                if r_n >= REG_N {
+                    return Err(format!("Invalid register number: {}", r_n));
+                }
+
+                mem_t = MemT::REG(r_n);
+            } else {
+                let m_n = match arg[1..].parse::<usize>() {
+                    Ok(n) => n,
+                    Err(_) => return Err(format!("Expected a number after '&': {}", arg)),
+                };
+
+                if m_n >= MEM_N {
+                    return Err(format!("Invalid memory address: {}", m_n));
+                }
+
+                mem_t = MemT::ADR(m_n);
+            }
+
+            return Ok(ArgT::MEM(mem_t));
+        }
+
+        if arg_types.contains(&(ArgT::CHR as u8)) && arg.starts_with(".") {
+            let c = arg.chars().nth(1).unwrap();
+
+            return Ok(ArgT::CHR(c));
+        }
+
+        if arg_types.contains(&(ArgT::NUM as u8)) {
+            // number
+            let n = match arg.parse::<u8>() {
+                Ok(n) => n,
+                Err(_) => return Err(format!("Expected a number: {}", arg)),
+            };
+
+            return Ok(ArgT::NUM(n));
+        }
+
+        unreachable!("UNREACHABLE: {} {:?}", arg, arg_types)
+    }
 }
 
 #[derive(Debug)]
@@ -38,6 +109,7 @@ enum IType {
     PRT(ArgT),
     NULL,
 }
+
 enum CMP {
     EQ = 0b001,
     LT = 0b010,
@@ -123,121 +195,17 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for 'mov': {}", line));
                     }
 
-                    let arg1 = {
-                        let arg = words.pop_front().unwrap();
-
-                        if arg.starts_with('#') {
-                            // register
-                            let r_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            ArgT::REG(r_n)
-                        } else if arg.starts_with("&") {
-                            let mem_t: MemT;
-                            if arg[1..].starts_with("#") {
-                                let r_n = match arg[2..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '#': {}", arg))
-                                    }
-                                };
-
-                                if r_n >= REG_N {
-                                    return Err(format!("Invalid register number: {}", r_n));
-                                }
-
-                                mem_t = MemT::REG(r_n);
-                            } else {
-                                let m_n = match arg[1..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '&': {}", arg))
-                                    }
-                                };
-
-                                if m_n >= MEM_N {
-                                    return Err(format!("Invalid memory address: {}", m_n));
-                                }
-
-                                mem_t = MemT::ADR(m_n);
-                            }
-
-                            ArgT::MEM(mem_t)
-                        } else if arg.starts_with(".") {
-                            let c = arg.chars().nth(1).unwrap();
-
-                            ArgT::CHR(c)
-                        } else {
-                            // number
-                            let n = match arg.parse::<u8>() {
-                                Ok(n) => n,
-                                Err(_) => return Err(format!("Expected a number: {}", arg)),
-                            };
-
-                            ArgT::NUM(n)
-                        }
-                    };
-
-                    let arg2 = {
-                        let arg = words.pop_front().unwrap();
-
-                        if arg.starts_with('#') {
-                            // register
-                            let r_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            ArgT::REG(r_n)
-                        } else if arg.starts_with("&") {
-                            let mem_t: MemT;
-                            if arg[1..].starts_with("#") {
-                                let r_n = match arg[2..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '#': {}", arg))
-                                    }
-                                };
-
-                                if r_n >= REG_N {
-                                    return Err(format!("Invalid register number: {}", r_n));
-                                }
-
-                                mem_t = MemT::REG(r_n);
-                            } else {
-                                let m_n = match arg[1..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '&': {}", arg))
-                                    }
-                                };
-
-                                if m_n >= MEM_N {
-                                    return Err(format!("Invalid memory address: {}", m_n));
-                                }
-
-                                mem_t = MemT::ADR(m_n);
-                            }
-
-                            ArgT::MEM(mem_t)
-                        } else {
-                            return Err(format!("Expected a register or memory address: {}", arg));
-                        }
-                    };
+                    let arg1 = ArgT::parse(
+                        &mut words,
+                        [
+                            ArgT::NUM as u8,
+                            ArgT::REG as u8,
+                            ArgT::MEM as u8,
+                            ArgT::CHR as u8,
+                        ]
+                        .into(),
+                    )?;
+                    let arg2 = ArgT::parse(&mut words, [ArgT::REG as u8, ArgT::MEM as u8].into())?;
 
                     token.itype = IType::MOV(arg1, arg2);
                 }
@@ -246,121 +214,18 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for add: {}", line));
                     }
 
-                    let arg1 = {
-                        let arg = words.pop_front().unwrap();
+                    let arg1 = ArgT::parse(
+                        &mut words,
+                        [
+                            ArgT::NUM as u8,
+                            ArgT::REG as u8,
+                            ArgT::MEM as u8,
+                            ArgT::CHR as u8,
+                        ]
+                        .into(),
+                    )?;
 
-                        if arg.starts_with('#') {
-                            // register
-                            let r_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            ArgT::REG(r_n)
-                        } else if arg.starts_with("&") {
-                            let mem_t: MemT;
-                            if arg[1..].starts_with("#") {
-                                let r_n = match arg[2..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '#': {}", arg))
-                                    }
-                                };
-
-                                if r_n >= REG_N {
-                                    return Err(format!("Invalid register number: {}", r_n));
-                                }
-
-                                mem_t = MemT::REG(r_n);
-                            } else {
-                                let m_n = match arg[1..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '&': {}", arg))
-                                    }
-                                };
-
-                                if m_n >= MEM_N {
-                                    return Err(format!("Invalid memory address: {}", m_n));
-                                }
-
-                                mem_t = MemT::ADR(m_n);
-                            }
-
-                            ArgT::MEM(mem_t)
-                        } else if arg.starts_with(".") {
-                            let c = arg.chars().nth(1).unwrap();
-
-                            ArgT::CHR(c)
-                        } else {
-                            // number
-                            let n = match arg.parse::<u8>() {
-                                Ok(n) => n,
-                                Err(_) => return Err(format!("Expected a number: {}", arg)),
-                            };
-
-                            ArgT::NUM(n)
-                        }
-                    };
-
-                    let arg2 = {
-                        let arg = words.pop_front().unwrap();
-
-                        if arg.starts_with('#') {
-                            // register
-                            let r_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            ArgT::REG(r_n)
-                        } else if arg.starts_with("&") {
-                            let mem_t: MemT;
-                            if arg[1..].starts_with("#") {
-                                let r_n = match arg[2..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '#': {}", arg))
-                                    }
-                                };
-
-                                if r_n >= REG_N {
-                                    return Err(format!("Invalid register number: {}", r_n));
-                                }
-
-                                mem_t = MemT::REG(r_n);
-                            } else {
-                                let m_n = match arg[1..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '&': {}", arg))
-                                    }
-                                };
-
-                                if m_n >= MEM_N {
-                                    return Err(format!("Invalid memory address: {}", m_n));
-                                }
-
-                                mem_t = MemT::ADR(m_n);
-                            }
-
-                            ArgT::MEM(mem_t)
-                        } else {
-                            return Err(format!("Expected a register: {}", arg));
-                        }
-                    };
+                    let arg2 = ArgT::parse(&mut words, [ArgT::REG as u8, ArgT::MEM as u8].into())?;
 
                     token.itype = IType::ADD(arg1, arg2);
                 }
@@ -369,121 +234,18 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for sub: {}", line));
                     }
 
-                    let arg1 = {
-                        let arg = words.pop_front().unwrap();
+                    let arg1 = ArgT::parse(
+                        &mut words,
+                        [
+                            ArgT::NUM as u8,
+                            ArgT::REG as u8,
+                            ArgT::MEM as u8,
+                            ArgT::CHR as u8,
+                        ]
+                        .into(),
+                    )?;
 
-                        if arg.starts_with('#') {
-                            // register
-                            let r_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            ArgT::REG(r_n)
-                        } else if arg.starts_with("&") {
-                            let mem_t: MemT;
-                            if arg[1..].starts_with("#") {
-                                let r_n = match arg[2..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '#': {}", arg))
-                                    }
-                                };
-
-                                if r_n >= REG_N {
-                                    return Err(format!("Invalid register number: {}", r_n));
-                                }
-
-                                mem_t = MemT::REG(r_n);
-                            } else {
-                                let m_n = match arg[1..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '&': {}", arg))
-                                    }
-                                };
-
-                                if m_n >= MEM_N {
-                                    return Err(format!("Invalid memory address: {}", m_n));
-                                }
-
-                                mem_t = MemT::ADR(m_n);
-                            }
-
-                            ArgT::MEM(mem_t)
-                        } else if arg.starts_with(".") {
-                            let c = arg.chars().nth(1).unwrap();
-
-                            ArgT::CHR(c)
-                        } else {
-                            // number
-                            let n = match arg.parse::<u8>() {
-                                Ok(n) => n,
-                                Err(_) => return Err(format!("Expected a number: {}", arg)),
-                            };
-
-                            ArgT::NUM(n)
-                        }
-                    };
-
-                    let arg2 = {
-                        let arg = words.pop_front().unwrap();
-
-                        if arg.starts_with('#') {
-                            // register
-                            let r_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            ArgT::REG(r_n)
-                        } else if arg.starts_with("&") {
-                            let mem_t: MemT;
-                            if arg[1..].starts_with("#") {
-                                let r_n = match arg[2..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '#': {}", arg))
-                                    }
-                                };
-
-                                if r_n >= REG_N {
-                                    return Err(format!("Invalid register number: {}", r_n));
-                                }
-
-                                mem_t = MemT::REG(r_n);
-                            } else {
-                                let m_n = match arg[1..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '&': {}", arg))
-                                    }
-                                };
-
-                                if m_n >= MEM_N {
-                                    return Err(format!("Invalid memory address: {}", m_n));
-                                }
-
-                                mem_t = MemT::ADR(m_n);
-                            }
-
-                            ArgT::MEM(mem_t)
-                        } else {
-                            return Err(format!("Expected a register: {}", arg));
-                        }
-                    };
+                    let arg2 = ArgT::parse(&mut words, [ArgT::REG as u8, ArgT::MEM as u8].into())?;
 
                     token.itype = IType::SUB(arg1, arg2);
                 }
@@ -492,121 +254,18 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for cmp: {}", line));
                     }
 
-                    let arg1 = {
-                        let arg = words.pop_front().unwrap();
+                    let arg1 = ArgT::parse(
+                        &mut words,
+                        [
+                            ArgT::NUM as u8,
+                            ArgT::REG as u8,
+                            ArgT::MEM as u8,
+                            ArgT::CHR as u8,
+                        ]
+                        .into(),
+                    )?;
 
-                        if arg.starts_with('#') {
-                            // register
-                            let r_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            ArgT::REG(r_n)
-                        } else if arg.starts_with("&") {
-                            let mem_t: MemT;
-                            if arg[1..].starts_with("#") {
-                                let r_n = match arg[2..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '#': {}", arg))
-                                    }
-                                };
-
-                                if r_n >= REG_N {
-                                    return Err(format!("Invalid register number: {}", r_n));
-                                }
-
-                                mem_t = MemT::REG(r_n);
-                            } else {
-                                let m_n = match arg[1..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '&': {}", arg))
-                                    }
-                                };
-
-                                if m_n >= MEM_N {
-                                    return Err(format!("Invalid memory address: {}", m_n));
-                                }
-
-                                mem_t = MemT::ADR(m_n);
-                            }
-
-                            ArgT::MEM(mem_t)
-                        } else if arg.starts_with(".") {
-                            let c = arg.chars().nth(1).unwrap();
-
-                            ArgT::CHR(c)
-                        } else {
-                            // number
-                            let n = match arg.parse::<u8>() {
-                                Ok(n) => n,
-                                Err(_) => return Err(format!("Expected a number: {}", arg)),
-                            };
-
-                            ArgT::NUM(n)
-                        }
-                    };
-
-                    let arg2 = {
-                        let arg = words.pop_front().unwrap();
-
-                        if arg.starts_with('#') {
-                            // register
-                            let r_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            ArgT::REG(r_n)
-                        } else if arg.starts_with("&") {
-                            let mem_t: MemT;
-                            if arg[1..].starts_with("#") {
-                                let r_n = match arg[2..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '#': {}", arg))
-                                    }
-                                };
-
-                                if r_n >= REG_N {
-                                    return Err(format!("Invalid register number: {}", r_n));
-                                }
-
-                                mem_t = MemT::REG(r_n);
-                            } else {
-                                let m_n = match arg[1..].parse::<usize>() {
-                                    Ok(n) => n,
-                                    Err(_) => {
-                                        return Err(format!("Expected a number after '&': {}", arg))
-                                    }
-                                };
-
-                                if m_n >= MEM_N {
-                                    return Err(format!("Invalid memory address: {}", m_n));
-                                }
-
-                                mem_t = MemT::ADR(m_n);
-                            }
-
-                            ArgT::MEM(mem_t)
-                        } else {
-                            return Err(format!("{}: Expected a register: {}", line!(), arg));
-                        }
-                    };
+                    let arg2 = ArgT::parse(&mut words, [ArgT::REG as u8, ArgT::MEM as u8].into())?;
 
                     token.itype = IType::CMP(arg1, arg2);
                 }
@@ -615,9 +274,9 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for jlt: {}", line));
                     }
 
-                    let arg = words.pop_front().unwrap();
+                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
 
-                    token.itype = IType::JLT(ArgT::LBL(arg.to_string()));
+                    token.itype = IType::JLT(arg);
                 }
 
                 "jgt" => {
@@ -625,18 +284,18 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for jgt: {}", line));
                     }
 
-                    let arg = words.pop_front().unwrap();
+                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
 
-                    token.itype = IType::JGT(ArgT::LBL(arg.to_string()));
+                    token.itype = IType::JGT(arg);
                 }
                 "jeq" => {
                     if words.len() != 1 {
                         return Err(format!("Invalid number of arguments for jeq: {}", line));
                     }
 
-                    let arg = words.pop_front().unwrap();
+                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
 
-                    token.itype = IType::JEQ(ArgT::LBL(arg.to_string()));
+                    token.itype = IType::JEQ(arg);
                 }
 
                 "jne" => {
@@ -644,9 +303,9 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for jne: {}", line));
                     }
 
-                    let arg = words.pop_front().unwrap();
+                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
 
-                    token.itype = IType::JNE(ArgT::LBL(arg.to_string()));
+                    token.itype = IType::JNE(arg);
                 }
 
                 "jmp" => {
@@ -654,17 +313,16 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for jmp: {}", line));
                     }
 
-                    let arg = words.pop_front().unwrap();
+                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
 
-                    token.itype = IType::JMP(ArgT::LBL(arg.to_string()));
+                    token.itype = IType::JMP(arg);
                 }
                 "run" => {
                     if words.len() != 1 {
                         return Err(format!("Invalid number of arguments for run: {}", line));
                     }
-
-                    let arg = words.pop_front().unwrap();
-                    token.itype = IType::RUN(ArgT::LBL(arg.to_string()));
+                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
+                    token.itype = IType::RUN(arg);
                 }
                 "ret" => {
                     if words.len() != 0 {
@@ -685,189 +343,54 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for out: {}", line));
                     }
 
-                    let arg = words.pop_front().unwrap();
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [
+                            ArgT::NUM as u8,
+                            ArgT::REG as u8,
+                            ArgT::MEM as u8,
+                            ArgT::CHR as u8,
+                        ]
+                        .into(),
+                    )?;
 
-                    if arg.starts_with('#') {
-                        // register
-                        let r_n = match arg[1..].parse::<usize>() {
-                            Ok(n) => n,
-                            Err(_) => return Err(format!("Expected a number after '#': {}", arg)),
-                        };
-
-                        if r_n >= REG_N {
-                            return Err(format!("Invalid register number: {}", r_n));
-                        }
-
-                        token.itype = IType::OUT(ArgT::REG(r_n));
-                    } else if arg.starts_with("&") {
-                        let mem_t: MemT;
-                        if arg[1..].starts_with("#") {
-                            let r_n = match arg[2..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            mem_t = MemT::REG(r_n);
-                        } else {
-                            let m_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '&': {}", arg))
-                                }
-                            };
-
-                            if m_n >= MEM_N {
-                                return Err(format!("Invalid memory address: {}", m_n));
-                            }
-                            mem_t = MemT::ADR(m_n);
-                        }
-
-                        token.itype = IType::OUT(ArgT::MEM(mem_t));
-                    } else if arg.starts_with(".") {
-                        let c = arg.chars().nth(1).unwrap();
-
-                        token.itype = IType::OUT(ArgT::CHR(c));
-                    } else {
-                        // number
-                        let n = match arg.parse::<u8>() {
-                            Ok(n) => n,
-                            Err(_) => return Err(format!("Expected a number: {}", arg)),
-                        };
-
-                        token.itype = IType::OUT(ArgT::NUM(n));
-                    }
+                    token.itype = IType::OUT(arg);
                 }
                 "dbg" => {
                     if words.len() != 1 {
                         return Err(format!("Invalid number of arguments for dbg: {}", line));
                     }
 
-                    let arg = words.pop_front().unwrap();
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [
+                            ArgT::NUM as u8,
+                            ArgT::REG as u8,
+                            ArgT::MEM as u8,
+                            ArgT::CHR as u8,
+                        ]
+                        .into(),
+                    )?;
 
-                    if arg.starts_with('#') {
-                        // register
-                        let r_n = match arg[1..].parse::<usize>() {
-                            Ok(n) => n,
-                            Err(_) => return Err(format!("Expected a number after '#': {}", arg)),
-                        };
-
-                        if r_n >= REG_N {
-                            return Err(format!("Invalid register number: {}", r_n));
-                        }
-
-                        token.itype = IType::DBG(ArgT::REG(r_n));
-                    } else if arg.starts_with("&") {
-                        let mem_t: MemT;
-                        if arg[1..].starts_with("#") {
-                            let r_n = match arg[2..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            mem_t = MemT::REG(r_n);
-                        } else {
-                            let m_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '&': {}", arg))
-                                }
-                            };
-
-                            if m_n >= MEM_N {
-                                return Err(format!("Invalid memory address: {}", m_n));
-                            }
-                            mem_t = MemT::ADR(m_n);
-                        }
-
-                        token.itype = IType::DBG(ArgT::MEM(mem_t));
-                    } else if arg.starts_with(".") {
-                        let c = arg.chars().nth(1).unwrap();
-
-                        token.itype = IType::DBG(ArgT::CHR(c));
-                    } else {
-                        // number
-                        let n = match arg.parse::<u8>() {
-                            Ok(n) => n,
-                            Err(_) => return Err(format!("Expected a number: {}", arg)),
-                        };
-
-                        token.itype = IType::DBG(ArgT::NUM(n));
-                    }
+                    token.itype = IType::DBG(arg);
                 }
                 "prt" => {
                     if words.len() != 1 {
                         return Err(format!("Invalid number of arguments for prt: {}", line));
                     }
 
-                    let arg = words.pop_front().unwrap();
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [
+                            ArgT::NUM as u8,
+                            ArgT::REG as u8,
+                            ArgT::MEM as u8,
+                            ArgT::CHR as u8,
+                        ]
+                        .into(),
+                    )?;
 
-                    if arg.starts_with('#') {
-                        // register
-                        let r_n = match arg[1..].parse::<usize>() {
-                            Ok(n) => n,
-                            Err(_) => return Err(format!("Expected a number after '#': {}", arg)),
-                        };
-
-                        if r_n >= REG_N {
-                            return Err(format!("Invalid register number: {}", r_n));
-                        }
-
-                        token.itype = IType::PRT(ArgT::REG(r_n));
-                    } else if arg.starts_with("&") {
-                        let mem_t: MemT;
-                        if arg[1..].starts_with("#") {
-                            let r_n = match arg[2..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '#': {}", arg))
-                                }
-                            };
-
-                            if r_n >= REG_N {
-                                return Err(format!("Invalid register number: {}", r_n));
-                            }
-
-                            mem_t = MemT::REG(r_n);
-                        } else {
-                            let m_n = match arg[1..].parse::<usize>() {
-                                Ok(n) => n,
-                                Err(_) => {
-                                    return Err(format!("Expected a number after '&': {}", arg))
-                                }
-                            };
-
-                            if m_n >= MEM_N {
-                                return Err(format!("Invalid memory address: {}", m_n));
-                            }
-                            mem_t = MemT::ADR(m_n);
-                        }
-
-                        token.itype = IType::PRT(ArgT::MEM(mem_t));
-                    } else if arg.starts_with(".") {
-                        let c = arg.chars().nth(1).unwrap();
-
-                        token.itype = IType::PRT(ArgT::CHR(c));
-                    } else {
-                        // number
-                        let n = match arg.parse::<u8>() {
-                            Ok(n) => n,
-                            Err(_) => return Err(format!("Expected a number: {}", arg)),
-                        };
-
-                        token.itype = IType::PRT(ArgT::NUM(n));
-                    }
+                    token.itype = IType::PRT(arg);
                 }
 
                 _ => return Err(format!("Unknown instruction: {}", word)),

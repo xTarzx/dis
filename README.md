@@ -54,7 +54,7 @@
 
 ## Instructions
 
-- MOV: `mov <NUM | REG | MEM> <REG | MEM>`
+- MOV: `mov <NUM | REG | MEM | CHR> <REG | MEM>`
 
   ```
     mov 69 #0
