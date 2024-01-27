@@ -156,7 +156,7 @@ impl DIS {
         }
     }
 
-    fn tokenize(&mut self, source: String) -> Result<Vec<Token>, String> {
+    fn tokenize(&mut self, source_dir: &str, source: String) -> Result<Vec<Token>, String> {
         let mut program: Vec<Token> = Vec::new();
 
         for line in source.lines() {
@@ -393,6 +393,27 @@ impl DIS {
                     token.itype = IType::PRT(arg);
                 }
 
+                "@" => {
+                    if words.len() != 1 {
+                        return Err(format!("Invalid number of arguments for @: {}", line));
+                    }
+
+                    let include_path =
+                        source_dir.to_owned() + "/" + words.pop_front().unwrap() + ".dis";
+
+                    let include_source = std::fs::read_to_string(&include_path);
+
+                    if include_source.is_err() {
+                        return Err(format!("Failed to read file: {}", include_path));
+                    }
+                    let include_source = include_source.unwrap();
+
+                    let include_program = self.tokenize(source_dir, include_source)?;
+
+                    program.extend(include_program);
+                    continue;
+                }
+
                 _ => return Err(format!("Unknown instruction: {}", word)),
             }
 
@@ -405,6 +426,9 @@ impl DIS {
     fn resolve_labels(&mut self) -> Result<(), String> {
         for (n, token) in self.program.iter().enumerate() {
             if let Some(label) = &token.label {
+                if self.label_map.contains_key(label) {
+                    return Err(format!("Duplicate label: {}", label));
+                }
                 self.label_map.insert(label.clone(), n);
             }
         }
@@ -447,6 +471,11 @@ impl DIS {
 
     pub fn load_program(&mut self, filename: &str) -> Result<(), ()> {
         let source = std::fs::read_to_string(filename);
+        let source_dir = std::path::Path::new(filename)
+            .parent()
+            .unwrap()
+            .to_str()
+            .unwrap();
 
         if source.is_err() {
             println!("Error: Failed to read file: {}", filename);
@@ -454,7 +483,7 @@ impl DIS {
         }
         let source = source.unwrap();
 
-        match self.tokenize(source) {
+        match self.tokenize(source_dir, source) {
             Ok(program) => {
                 self.program = program;
 
