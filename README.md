@@ -164,10 +164,19 @@
   ```
 - PRT: `prt <NUM | REG | MEM | CHR>`
   print value
+
   ```
     mov 97 #0
     out #0
     prints '97'
+  ```
+
+- @ (include): `@ <filename>`
+  includes the content at that location<br>
+  filename must be without extension, it will append '.dis'
+  ```
+    @ hello
+    includes the file "hello.dis"
   ```
 
 ## Example
