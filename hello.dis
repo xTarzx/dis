@@ -1,0 +1,7 @@
+hello:
+out .h
+out .e
+out .l
+out .l
+out .o
+out 10

@@ -393,6 +393,26 @@ impl DIS {
                     token.itype = IType::PRT(arg);
                 }
 
+                "@" => {
+                    if words.len() != 1 {
+                        return Err(format!("Invalid number of arguments for @: {}", line));
+                    }
+
+                    let include_path = words.pop_front().unwrap().to_owned() + ".dis";
+
+                    let include_source = std::fs::read_to_string(&include_path);
+
+                    if include_source.is_err() {
+                        return Err(format!("Error: Failed to read file: {}", include_path));
+                    }
+                    let include_source = include_source.unwrap();
+
+                    let include_program = self.tokenize(include_source)?;
+
+                    program.extend(include_program);
+                    continue;
+                }
+
                 _ => return Err(format!("Unknown instruction: {}", word)),
             }
 
@@ -405,6 +425,9 @@ impl DIS {
     fn resolve_labels(&mut self) -> Result<(), String> {
         for (n, token) in self.program.iter().enumerate() {
             if let Some(label) = &token.label {
+                if self.label_map.contains_key(label) {
+                    return Err(format!("Duplicate label: {}", label));
+                }
                 self.label_map.insert(label.clone(), n);
             }
         }
