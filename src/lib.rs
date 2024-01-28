@@ -1,26 +1,29 @@
 use std::collections::{HashMap, VecDeque};
 
-const REG_N: usize = 4;
 const MEM_N: usize = 4096;
 const STK_N: usize = 256;
 
 #[derive(Debug, PartialEq)]
 enum MemT {
     ADR(usize),
-    REG(usize),
+    REG(String),
 }
 
 #[derive(Debug, PartialEq)]
 enum ArgT {
     NUM(u8),
-    REG(usize),
+    REG(String),
     MEM(MemT),
     CHR(char),
     LBL(String),
 }
 
 impl ArgT {
-    pub fn parse(words: &mut VecDeque<&str>, arg_types: Vec<u8>) -> Result<ArgT, String> {
+    pub fn parse(
+        words: &mut VecDeque<&str>,
+        arg_types: Vec<u8>,
+        registers: Vec<String>,
+    ) -> Result<ArgT, String> {
         let arg = words.pop_front().unwrap();
 
         if arg_types.contains(&(ArgT::LBL as u8)) {
@@ -29,31 +32,26 @@ impl ArgT {
 
         if arg_types.contains(&(ArgT::REG as u8)) && arg.starts_with('#') {
             // register
-            let r_n = match arg[1..].parse::<usize>() {
-                Ok(n) => n,
-                Err(_) => return Err(format!("Expected a number after '#': {}", arg)),
-            };
 
-            if r_n >= REG_N {
-                return Err(format!("Invalid register number: {}", r_n));
+            let r_k = arg[1..].to_string();
+
+            if !registers.contains(&r_k) {
+                return Err(format!("Invalid register: {}", r_k));
             }
 
-            return Ok(ArgT::REG(r_n));
+            return Ok(ArgT::REG(r_k));
         }
 
         if arg_types.contains(&(ArgT::MEM as u8)) && arg.starts_with("&") {
             let mem_t: MemT;
             if arg[1..].starts_with("#") {
-                let r_n = match arg[2..].parse::<usize>() {
-                    Ok(n) => n,
-                    Err(_) => return Err(format!("Expected a number after '#': {}", arg)),
-                };
+                let r_k = arg[1..].to_string();
 
-                if r_n >= REG_N {
-                    return Err(format!("Invalid register number: {}", r_n));
+                if !registers.contains(&r_k) {
+                    return Err(format!("Invalid register: {}", r_k));
                 }
 
-                mem_t = MemT::REG(r_n);
+                mem_t = MemT::REG(r_k);
             } else {
                 let m_n = match arg[1..].parse::<usize>() {
                     Ok(n) => n,
@@ -126,7 +124,7 @@ pub struct Token {
 }
 
 pub struct DIS {
-    registers: [u8; REG_N],
+    registers: HashMap<String, u8>,
     memory: [u8; MEM_N],
 
     ret_stack: [usize; STK_N],
@@ -143,8 +141,15 @@ pub struct DIS {
 
 impl DIS {
     pub fn new() -> DIS {
+        let mut registers: HashMap<String, u8> = HashMap::new();
+        registers.insert("0".into(), 0);
+        registers.insert("1".into(), 0);
+        registers.insert("2".into(), 0);
+        registers.insert("3".into(), 0);
+        registers.insert("e".into(), 0);
+
         DIS {
-            registers: [0; REG_N],
+            registers: registers,
             memory: [0; MEM_N],
             pc: 0,
 
@@ -207,8 +212,13 @@ impl DIS {
                             ArgT::CHR as u8,
                         ]
                         .into(),
+                        self.registers.keys().cloned().collect(),
                     )?;
-                    let arg2 = ArgT::parse(&mut words, [ArgT::REG as u8, ArgT::MEM as u8].into())?;
+                    let arg2 = ArgT::parse(
+                        &mut words,
+                        [ArgT::REG as u8, ArgT::MEM as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::MOV(arg1, arg2);
                 }
@@ -226,9 +236,14 @@ impl DIS {
                             ArgT::CHR as u8,
                         ]
                         .into(),
+                        self.registers.keys().cloned().collect(),
                     )?;
 
-                    let arg2 = ArgT::parse(&mut words, [ArgT::REG as u8, ArgT::MEM as u8].into())?;
+                    let arg2 = ArgT::parse(
+                        &mut words,
+                        [ArgT::REG as u8, ArgT::MEM as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::ADD(arg1, arg2);
                 }
@@ -246,9 +261,14 @@ impl DIS {
                             ArgT::CHR as u8,
                         ]
                         .into(),
+                        self.registers.keys().cloned().collect(),
                     )?;
 
-                    let arg2 = ArgT::parse(&mut words, [ArgT::REG as u8, ArgT::MEM as u8].into())?;
+                    let arg2 = ArgT::parse(
+                        &mut words,
+                        [ArgT::REG as u8, ArgT::MEM as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::SUB(arg1, arg2);
                 }
@@ -266,9 +286,14 @@ impl DIS {
                             ArgT::CHR as u8,
                         ]
                         .into(),
+                        self.registers.keys().cloned().collect(),
                     )?;
 
-                    let arg2 = ArgT::parse(&mut words, [ArgT::REG as u8, ArgT::MEM as u8].into())?;
+                    let arg2 = ArgT::parse(
+                        &mut words,
+                        [ArgT::REG as u8, ArgT::MEM as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::CMP(arg1, arg2);
                 }
@@ -277,7 +302,11 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for jlt: {}", line));
                     }
 
-                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [ArgT::LBL as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::JLT(arg);
                 }
@@ -287,7 +316,11 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for jgt: {}", line));
                     }
 
-                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [ArgT::LBL as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::JGT(arg);
                 }
@@ -296,7 +329,11 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for jeq: {}", line));
                     }
 
-                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [ArgT::LBL as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::JEQ(arg);
                 }
@@ -306,7 +343,11 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for jne: {}", line));
                     }
 
-                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [ArgT::LBL as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::JNE(arg);
                 }
@@ -316,7 +357,11 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for jmp: {}", line));
                     }
 
-                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [ArgT::LBL as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::JMP(arg);
                 }
@@ -324,7 +369,11 @@ impl DIS {
                     if words.len() != 1 {
                         return Err(format!("Invalid number of arguments for run: {}", line));
                     }
-                    let arg = ArgT::parse(&mut words, [ArgT::LBL as u8].into())?;
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [ArgT::LBL as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
                     token.itype = IType::RUN(arg);
                 }
                 "ret" => {
@@ -355,6 +404,7 @@ impl DIS {
                             ArgT::CHR as u8,
                         ]
                         .into(),
+                        self.registers.keys().cloned().collect(),
                     )?;
 
                     token.itype = IType::OUT(arg);
@@ -373,6 +423,7 @@ impl DIS {
                             ArgT::CHR as u8,
                         ]
                         .into(),
+                        self.registers.keys().cloned().collect(),
                     )?;
 
                     token.itype = IType::DBG(arg);
@@ -391,6 +442,7 @@ impl DIS {
                             ArgT::CHR as u8,
                         ]
                         .into(),
+                        self.registers.keys().cloned().collect(),
                     )?;
 
                     token.itype = IType::PRT(arg);
@@ -422,7 +474,11 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for rdn: {}", line));
                     }
 
-                    let arg = ArgT::parse(&mut words, [ArgT::REG as u8, ArgT::MEM as u8].into())?;
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [ArgT::REG as u8, ArgT::MEM as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::RDN(arg);
                 }
@@ -432,7 +488,11 @@ impl DIS {
                         return Err(format!("Invalid number of arguments for rdc: {}", line));
                     }
 
-                    let arg = ArgT::parse(&mut words, [ArgT::REG as u8, ArgT::MEM as u8].into())?;
+                    let arg = ArgT::parse(
+                        &mut words,
+                        [ArgT::REG as u8, ArgT::MEM as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
 
                     token.itype = IType::RDC(arg);
                 }
@@ -533,11 +593,11 @@ impl DIS {
                     let src = match arg1 {
                         ArgT::NUM(n) => *n,
                         ArgT::CHR(c) => *c as u8,
-                        ArgT::REG(r_n) => self.registers[*r_n],
+                        ArgT::REG(r_k) => self.registers[r_k],
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => self.memory[*m_n],
-                            MemT::REG(r_n) => {
-                                let m_n = self.registers[*r_n] as usize;
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
                                 self.memory[m_n]
                             }
                         },
@@ -546,14 +606,14 @@ impl DIS {
 
                     match arg2 {
                         ArgT::REG(dst) => {
-                            self.registers[*dst] = src;
+                            self.registers.insert(dst.to_owned(), src);
                         }
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => {
                                 self.memory[*m_n] = src;
                             }
-                            MemT::REG(r_n) => {
-                                let m_n = self.registers[*r_n] as usize;
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
                                 self.memory[m_n] = src;
                             }
                         },
@@ -565,11 +625,11 @@ impl DIS {
                     let src = match arg1 {
                         ArgT::NUM(n) => *n,
                         ArgT::CHR(c) => *c as u8,
-                        ArgT::REG(r_n) => self.registers[*r_n],
+                        ArgT::REG(r_k) => self.registers[r_k],
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => self.memory[*m_n],
-                            MemT::REG(r_n) => {
-                                let m_n = self.registers[*r_n] as usize;
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
                                 self.memory[m_n]
                             }
                         },
@@ -578,14 +638,15 @@ impl DIS {
 
                     match arg2 {
                         ArgT::REG(dst) => {
-                            self.registers[*dst] = self.registers[*dst].overflowing_add(src).0;
+                            let (res, _) = self.registers[dst].overflowing_add(src);
+                            self.registers.insert(dst.to_owned(), res);
                         }
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => {
                                 self.memory[*m_n] = self.memory[*m_n].overflowing_add(src).0;
                             }
-                            MemT::REG(r_n) => {
-                                let m_n = self.registers[*r_n] as usize;
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
                                 self.memory[m_n] = self.memory[m_n].overflowing_add(src).0;
                             }
                         },
@@ -596,11 +657,11 @@ impl DIS {
                     let src = match arg1 {
                         ArgT::NUM(n) => *n,
                         ArgT::CHR(c) => *c as u8,
-                        ArgT::REG(r_n) => self.registers[*r_n],
+                        ArgT::REG(r_k) => self.registers[r_k],
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => self.memory[*m_n],
-                            MemT::REG(r_n) => {
-                                let m_n = self.registers[*r_n] as usize;
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
                                 self.memory[m_n]
                             }
                         },
@@ -609,14 +670,15 @@ impl DIS {
 
                     match arg2 {
                         ArgT::REG(dst) => {
-                            self.registers[*dst] = self.registers[*dst].overflowing_sub(src).0;
+                            let (res, _) = self.registers[dst].overflowing_sub(src);
+                            self.registers.insert(dst.to_owned(), res);
                         }
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => {
                                 self.memory[*m_n] = self.memory[*m_n].overflowing_sub(src).0;
                             }
-                            MemT::REG(r_n) => {
-                                let m_n = self.registers[*r_n] as usize;
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
                                 self.memory[m_n] = self.memory[m_n].overflowing_sub(src).0;
                             }
                         },
@@ -628,11 +690,11 @@ impl DIS {
                     let a = match arg1 {
                         ArgT::NUM(n) => *n,
                         ArgT::CHR(c) => *c as u8,
-                        ArgT::REG(r_n) => self.registers[*r_n],
+                        ArgT::REG(r_k) => self.registers[r_k],
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => self.memory[*m_n],
-                            MemT::REG(r_n) => {
-                                let m_n = self.registers[*r_n] as usize;
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
                                 self.memory[m_n]
                             }
                         },
@@ -642,11 +704,11 @@ impl DIS {
                     let b = match arg2 {
                         ArgT::NUM(n) => *n,
                         ArgT::CHR(c) => *c as u8,
-                        ArgT::REG(r_n) => self.registers[*r_n],
+                        ArgT::REG(r_k) => self.registers[r_k],
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => self.memory[*m_n],
-                            MemT::REG(r_n) => {
-                                let m_n = self.registers[*r_n] as usize;
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
                                 self.memory[m_n]
                             }
                         },
@@ -717,15 +779,15 @@ impl DIS {
                         print!("{}", *c as char);
                     }
 
-                    ArgT::REG(r_n) => {
-                        print!("{}", self.registers[*r_n] as char);
+                    ArgT::REG(r_k) => {
+                        print!("{}", self.registers[r_k] as char);
                     }
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => {
                             print!("{}", self.memory[*m_n] as char);
                         }
-                        MemT::REG(r_n) => {
-                            let m_n = self.registers[*r_n] as usize;
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
                             print!("{}", self.memory[m_n] as char);
                         }
                     },
@@ -741,16 +803,16 @@ impl DIS {
                         println!("DBG #: {} ({})", *c, *c as u8);
                     }
 
-                    ArgT::REG(r_n) => {
-                        println!("DBG #{}: {}", *r_n, self.registers[*r_n]);
+                    ArgT::REG(r_k) => {
+                        println!("DBG #{}: {}", r_k, self.registers[r_k]);
                     }
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => {
                             println!("DBG &{}: {}", *m_n, self.memory[*m_n]);
                         }
-                        MemT::REG(r_n) => {
-                            let m_n = self.registers[*r_n] as usize;
-                            println!("DBG &#{} (&{}): {}", *r_n, m_n, self.memory[m_n]);
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            println!("DBG &#{} (&{}): {}", r_k, m_n, self.memory[m_n]);
                         }
                     },
                     other => unreachable!("UNREACHABLE: {:?}", other),
@@ -765,15 +827,15 @@ impl DIS {
                         print!("{}", *c as u8);
                     }
 
-                    ArgT::REG(r_n) => {
-                        print!("{}", self.registers[*r_n]);
+                    ArgT::REG(r_k) => {
+                        print!("{}", self.registers[r_k]);
                     }
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => {
                             print!("{}", self.memory[*m_n]);
                         }
-                        MemT::REG(r_n) => {
-                            let m_n = self.registers[*r_n] as usize;
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
                             print!("{}", self.memory[m_n]);
                         }
                     },
@@ -781,7 +843,7 @@ impl DIS {
                 },
                 // TODO: error handling
                 IType::RDN(arg) => match arg {
-                    ArgT::REG(r_n) => {
+                    ArgT::REG(r_k) => {
                         let mut input = String::new();
                         std::io::stdin().read_line(&mut input).unwrap();
 
@@ -792,7 +854,7 @@ impl DIS {
                             return;
                         }
 
-                        self.registers[*r_n] = input.unwrap();
+                        self.registers.insert(r_k.to_owned(), input.unwrap());
                     }
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => {
@@ -807,8 +869,8 @@ impl DIS {
 
                             self.memory[*m_n] = input.unwrap();
                         }
-                        MemT::REG(r_n) => {
-                            let m_n = self.registers[*r_n] as usize;
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
 
                             let mut input = String::new();
                             std::io::stdin().read_line(&mut input).unwrap();
@@ -826,13 +888,13 @@ impl DIS {
                 },
 
                 IType::RDC(arg) => match arg {
-                    ArgT::REG(r_n) => {
+                    ArgT::REG(r_k) => {
                         let mut input = String::new();
                         std::io::stdin().read_line(&mut input).unwrap();
 
                         let input = input.trim().chars().nth(0).unwrap() as u8;
 
-                        self.registers[*r_n] = input;
+                        self.registers.insert(r_k.to_owned(), input);
                     }
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => {
@@ -843,8 +905,8 @@ impl DIS {
 
                             self.memory[*m_n] = input;
                         }
-                        MemT::REG(r_n) => {
-                            let m_n = self.registers[*r_n] as usize;
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
 
                             let mut input = String::new();
                             std::io::stdin().read_line(&mut input).unwrap();
