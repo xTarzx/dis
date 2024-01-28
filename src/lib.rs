@@ -513,7 +513,7 @@ impl DIS {
                     let arg2 = if words.len() == 1 {
                         Some(ArgT::parse(
                             &mut words,
-                            [ArgT::NUM as u8].into(),
+                            [ArgT::NUM as u8, ArgT::REG as u8, ArgT::MEM as u8].into(),
                             self.registers.keys().cloned().collect(),
                         )?)
                     } else {
@@ -947,11 +947,22 @@ impl DIS {
                         other => unreachable!("UNREACHABLE: {:?}", other),
                     };
 
-                    let max = match arg2 {
+                    let mut max = match arg2 {
                         Some(ArgT::NUM(n)) => *n as usize,
+                        Some(ArgT::REG(r_k)) => self.registers[r_k] as usize,
+                        Some(ArgT::MEM(mem_t)) => match mem_t {
+                            MemT::ADR(m_n) => self.memory[*m_n] as usize,
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
+                                self.memory[m_n] as usize
+                            }
+                        },
+
                         Some(other) => unreachable!("UNREACHABLE: {:?}", other),
                         None => input.len(),
                     };
+
+                    max = max.min(input.len());
 
                     for n in 0..max {
                         self.memory[dst + n] = input[n] as u8;
