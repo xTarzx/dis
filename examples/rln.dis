@@ -1,0 +1,15 @@
+rln &0
+
+prt #3
+out .:
+
+
+print:
+cmp 0 &#0
+jeq end
+out &#0
+add 1 #0
+jmp print
+
+end:
+out 10

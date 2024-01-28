@@ -108,6 +108,7 @@ enum IType {
     PRT(ArgT),
     RDN(ArgT),
     RDC(ArgT),
+    RLN(ArgT, Option<ArgT>),
 
     NULL,
 }
@@ -498,6 +499,30 @@ impl DIS {
                     token.itype = IType::RDC(arg);
                 }
 
+                "rln" => {
+                    if words.len() != 1 && words.len() != 2 {
+                        return Err(format!("Invalid number of arguments for rln: {}", line));
+                    }
+
+                    let arg1 = ArgT::parse(
+                        &mut words,
+                        [ArgT::MEM as u8].into(),
+                        self.registers.keys().cloned().collect(),
+                    )?;
+
+                    let arg2 = if words.len() == 1 {
+                        Some(ArgT::parse(
+                            &mut words,
+                            [ArgT::NUM as u8].into(),
+                            self.registers.keys().cloned().collect(),
+                        )?)
+                    } else {
+                        None
+                    };
+
+                    token.itype = IType::RLN(arg1, arg2);
+                }
+
                 _ => return Err(format!("Unknown instruction: {}", word)),
             }
 
@@ -848,7 +873,6 @@ impl DIS {
                     }
                     io::stdout().flush().unwrap();
                 }
-                // TODO: error handling
                 IType::RDN(arg) => {
                     let mut input = String::new();
                     std::io::stdin().read_line(&mut input).unwrap();
@@ -905,6 +929,35 @@ impl DIS {
                             other => unreachable!("UNREACHABLE: {:?}", other),
                         }
                     }
+                }
+
+                IType::RLN(arg1, arg2) => {
+                    let mut input = String::new();
+                    std::io::stdin().read_line(&mut input).unwrap();
+                    let input: Vec<char> = input.trim().chars().collect();
+
+                    let dst: usize = match arg1 {
+                        ArgT::MEM(mem_t) => match mem_t {
+                            MemT::ADR(m_n) => *m_n,
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
+                                m_n
+                            }
+                        },
+                        other => unreachable!("UNREACHABLE: {:?}", other),
+                    };
+
+                    let max = match arg2 {
+                        Some(ArgT::NUM(n)) => *n as usize,
+                        Some(other) => unreachable!("UNREACHABLE: {:?}", other),
+                        None => input.len(),
+                    };
+
+                    for n in 0..max {
+                        self.memory[dst + n] = input[n] as u8;
+                    }
+
+                    self.registers.insert("3".into(), max as u8);
                 }
 
                 IType::NULL => {}
