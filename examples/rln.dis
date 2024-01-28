@@ -1,4 +1,4 @@
-rln &0
+rln &0 3
 
 prt #3
 out .:

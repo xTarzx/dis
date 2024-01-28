@@ -202,11 +202,28 @@
 - RDC: `rdc <MEM | REG>`
   read from stdin and parse first char as number
   sets #e
+
   ```
   rdc #0
   - 1 enter
   prt #0
   - outputs '49'
+  ```
+
+- RLN: `rln <MEM> [NUM | REG | MEM]`
+  read line to address and return read count on #3<br>
+  optional arg: max characters to read
+
+  ```
+  rln &0
+  - stdin: test
+  - &0 &1 &2 &3
+  -  t  e  s  t
+
+  rln &10, 2
+  - stdin: test
+  - &10 &11 &12 &13
+  -  t    e   0   0
   ```
 
 ## Example
