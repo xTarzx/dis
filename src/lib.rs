@@ -842,82 +842,63 @@ impl DIS {
                     other => unreachable!("UNREACHABLE: {:?}", other),
                 },
                 // TODO: error handling
-                IType::RDN(arg) => match arg {
-                    ArgT::REG(r_k) => {
-                        let mut input = String::new();
-                        std::io::stdin().read_line(&mut input).unwrap();
-
-                        let input = input.trim().parse::<u8>();
-
-                        if input.is_err() {
-                            println!("Error: Failed to parse input!");
-                            return;
-                        }
-
-                        self.registers.insert(r_k.to_owned(), input.unwrap());
-                    }
-                    ArgT::MEM(mem_t) => match mem_t {
-                        MemT::ADR(m_n) => {
-                            let mut input = String::new();
-                            std::io::stdin().read_line(&mut input).unwrap();
-                            let input = input.trim().parse::<u8>();
-
-                            if input.is_err() {
-                                println!("Error: Failed to parse input!");
-                                return;
+                IType::RDN(arg) => {
+                    let mut input = String::new();
+                    std::io::stdin().read_line(&mut input).unwrap();
+                    let input = input.trim().parse::<u8>();
+                    if input.is_err() {
+                        self.registers.insert("e".into(), 1);
+                    } else {
+                        self.registers.insert("e".into(), 0);
+                        match arg {
+                            ArgT::REG(r_k) => {
+                                self.registers.insert(r_k.to_owned(), input.unwrap());
                             }
+                            ArgT::MEM(mem_t) => match mem_t {
+                                MemT::ADR(m_n) => {
+                                    self.memory[*m_n] = input.unwrap();
+                                }
+                                MemT::REG(r_k) => {
+                                    let m_n = self.registers[r_k] as usize;
 
-                            self.memory[*m_n] = input.unwrap();
+                                    self.memory[m_n] = input.unwrap();
+                                }
+                            },
+                            other => unreachable!("UNREACHABLE: {:?}", other),
                         }
-                        MemT::REG(r_k) => {
-                            let m_n = self.registers[r_k] as usize;
-
-                            let mut input = String::new();
-                            std::io::stdin().read_line(&mut input).unwrap();
-                            let input = input.trim().parse::<u8>();
-
-                            if input.is_err() {
-                                println!("Error: Failed to parse input!");
-                                return;
-                            }
-
-                            self.memory[m_n] = input.unwrap();
-                        }
-                    },
-                    other => unreachable!("UNREACHABLE: {:?}", other),
-                },
-
-                IType::RDC(arg) => match arg {
-                    ArgT::REG(r_k) => {
-                        let mut input = String::new();
-                        std::io::stdin().read_line(&mut input).unwrap();
-
-                        let input = input.trim().chars().nth(0).unwrap() as u8;
-
-                        self.registers.insert(r_k.to_owned(), input);
                     }
-                    ArgT::MEM(mem_t) => match mem_t {
-                        MemT::ADR(m_n) => {
-                            let mut input = String::new();
-                            std::io::stdin().read_line(&mut input).unwrap();
+                }
 
-                            let input = input.trim().chars().nth(0).unwrap() as u8;
+                IType::RDC(arg) => {
+                    let mut input = String::new();
+                    std::io::stdin().read_line(&mut input).unwrap();
+                    let input = input.trim().chars().nth(0);
 
-                            self.memory[*m_n] = input;
+                    if input.is_none() {
+                        self.registers.insert("e".into(), 1);
+                    } else {
+                        self.registers.insert("e".into(), 0);
+
+                        let input = input.unwrap() as u8;
+
+                        match arg {
+                            ArgT::REG(r_k) => {
+                                self.registers.insert(r_k.to_owned(), input);
+                            }
+                            ArgT::MEM(mem_t) => match mem_t {
+                                MemT::ADR(m_n) => {
+                                    self.memory[*m_n] = input;
+                                }
+                                MemT::REG(r_k) => {
+                                    let m_n = self.registers[r_k] as usize;
+
+                                    self.memory[m_n] = input;
+                                }
+                            },
+                            other => unreachable!("UNREACHABLE: {:?}", other),
                         }
-                        MemT::REG(r_k) => {
-                            let m_n = self.registers[r_k] as usize;
-
-                            let mut input = String::new();
-                            std::io::stdin().read_line(&mut input).unwrap();
-
-                            let input = input.trim().chars().nth(0).unwrap() as u8;
-
-                            self.memory[m_n] = input;
-                        }
-                    },
-                    other => unreachable!("UNREACHABLE: {:?}", other),
-                },
+                    }
+                }
 
                 IType::NULL => {}
                 other => unreachable!("UNREACHABLE: {:?}", other),

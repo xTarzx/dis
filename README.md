@@ -190,6 +190,7 @@
 
 - RDN: `rdn <MEM | REG>`
   read from stdin and parse as number
+  sets #e
 
   ```
   rdn #0
@@ -200,6 +201,7 @@
 
 - RDC: `rdc <MEM | REG>`
   read from stdin and parse first char as number
+  sets #e
   ```
   rdc #0
   - 1 enter
