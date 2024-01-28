@@ -779,7 +779,7 @@ impl DIS {
                     },
                     other => unreachable!("UNREACHABLE: {:?}", other),
                 },
-
+                // TODO: error handling
                 IType::RDN(arg) => match arg {
                     ArgT::REG(r_n) => {
                         let mut input = String::new();
