@@ -1,4 +1,5 @@
 use std::collections::{HashMap, VecDeque};
+use std::io::{self, Write};
 
 const MEM_N: usize = 4096;
 const STK_N: usize = 256;
@@ -770,29 +771,32 @@ impl DIS {
                     return;
                 }
 
-                IType::OUT(arg) => match arg {
-                    ArgT::NUM(n) => {
-                        print!("{}", *n as char);
-                    }
-
-                    ArgT::CHR(c) => {
-                        print!("{}", *c as char);
-                    }
-
-                    ArgT::REG(r_k) => {
-                        print!("{}", self.registers[r_k] as char);
-                    }
-                    ArgT::MEM(mem_t) => match mem_t {
-                        MemT::ADR(m_n) => {
-                            print!("{}", self.memory[*m_n] as char);
+                IType::OUT(arg) => {
+                    match arg {
+                        ArgT::NUM(n) => {
+                            print!("{}", *n as char);
                         }
-                        MemT::REG(r_k) => {
-                            let m_n = self.registers[r_k] as usize;
-                            print!("{}", self.memory[m_n] as char);
+
+                        ArgT::CHR(c) => {
+                            print!("{}", *c as char);
                         }
-                    },
-                    other => unreachable!("UNREACHABLE: {:?}", other),
-                },
+
+                        ArgT::REG(r_k) => {
+                            print!("{}", self.registers[r_k] as char);
+                        }
+                        ArgT::MEM(mem_t) => match mem_t {
+                            MemT::ADR(m_n) => {
+                                print!("{}", self.memory[*m_n] as char);
+                            }
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
+                                print!("{}", self.memory[m_n] as char);
+                            }
+                        },
+                        other => unreachable!("UNREACHABLE: {:?}", other),
+                    }
+                    io::stdout().flush().unwrap();
+                }
 
                 IType::DBG(arg) => match arg {
                     ArgT::NUM(n) => {
@@ -818,29 +822,32 @@ impl DIS {
                     other => unreachable!("UNREACHABLE: {:?}", other),
                 },
 
-                IType::PRT(arg) => match arg {
-                    ArgT::NUM(n) => {
-                        print!("{}", *n);
-                    }
-
-                    ArgT::CHR(c) => {
-                        print!("{}", *c as u8);
-                    }
-
-                    ArgT::REG(r_k) => {
-                        print!("{}", self.registers[r_k]);
-                    }
-                    ArgT::MEM(mem_t) => match mem_t {
-                        MemT::ADR(m_n) => {
-                            print!("{}", self.memory[*m_n]);
+                IType::PRT(arg) => {
+                    match arg {
+                        ArgT::NUM(n) => {
+                            print!("{}", *n);
                         }
-                        MemT::REG(r_k) => {
-                            let m_n = self.registers[r_k] as usize;
-                            print!("{}", self.memory[m_n]);
+
+                        ArgT::CHR(c) => {
+                            print!("{}", *c as u8);
                         }
-                    },
-                    other => unreachable!("UNREACHABLE: {:?}", other),
-                },
+
+                        ArgT::REG(r_k) => {
+                            print!("{}", self.registers[r_k]);
+                        }
+                        ArgT::MEM(mem_t) => match mem_t {
+                            MemT::ADR(m_n) => {
+                                print!("{}", self.memory[*m_n]);
+                            }
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
+                                print!("{}", self.memory[m_n]);
+                            }
+                        },
+                        other => unreachable!("UNREACHABLE: {:?}", other),
+                    }
+                    io::stdout().flush().unwrap();
+                }
                 // TODO: error handling
                 IType::RDN(arg) => {
                     let mut input = String::new();
