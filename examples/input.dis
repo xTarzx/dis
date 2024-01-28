@@ -1,0 +1,14 @@
+rdn #0
+cmp 0 #e
+jne err
+prt #0
+out 10
+die
+
+err:
+out .e
+out .r
+out .r
+out .o
+out .r
+out 10

@@ -6,25 +6,25 @@
   lines starting with '-' are ignored
 
   ```
-  - this is a comment
-  add 2 #2
+    - this is a comment
+    add 2 #2
   ```
 
 - NUM: `<number>`
   ```
-  13
-  value 13
+    13
+    - value 13
   ```
 - CHR: `.<character>`
   ```
-  .c
-  ascii value of c
+    .c
+    - ascii value of c
   ```
 - REG: `#<register index>`
 
   ```
-  #0
-  register 0
+    #0
+    - register 0
   ```
 
 - MEM:
@@ -33,23 +33,23 @@
 
   ```
     &20
-    memory at address 20
+    - memory at address 20
   ```
 
   - REG: `&#<register index>`
 
   ```
-  &#1
-  memory at address of value in register 1
+    &#1
+    - memory at address of value in register 1
   ```
 
 - LBL: `<label>`
   labels are set in beggining of line
   lines can have just a label
   ```
-  label0:
-  label1: add 1 #0
-  jmp label0
+    label0:
+    label1: add 1 #0
+    jmp label0
   ```
 
 ## Instructions
@@ -58,30 +58,30 @@
 
   ```
     mov 69 #0
-    set register 0 value to 69
+    - set register 0 value to 69
 
     mov #1 &#0
-    set memory at address of value in register 0 to value in register 1
+    - set memory at address of value in register 0 to value in register 1
   ```
 
 - ADD: `add <NUM | REG | MEM | CHR> <REG | MEM>`
 
   ```
     add 3 #0
-    increment value in register 0 by 3
+    - increment value in register 0 by 3
 
     add .a #1
-    increment value in register 0 by ascii valye of 'a' (97)
+    - increment value in register 0 by ascii valye of 'a' (97)
   ```
 
 - SUB: `sub <NUM | REG | MEM | CHR> <REG | MEM>`
 
   ```
     sub 3 #0
-    dec value in register 0 by 3
+    - dec value in register 0 by 3
 
     sub .a #1
-    dec value in register 0 by ascii valye of 'a' (97)
+    - dec value in register 0 by ascii valye of 'a' (97)
   ```
 
 - CMP: `cmp <NUM | REG | MEM | CHR> <REG | MEM>`
@@ -89,10 +89,10 @@
 
   ```
     cmp 13 #1
-    compare 13 with value in register 1
+    - compare 13 with value in register 1
 
     cmp #0 &#3
-    compare value in register 0 with value at memory address of value in register 3
+    - compare value in register 0 with value at memory address of value in register 3
   ```
 
 - JLT: `jlt <LBL>`
@@ -100,7 +100,7 @@
 
   ```
     jlt label0
-    jump to label0 if '<' bit is set
+    - jump to label0 if '<' bit is set
   ```
 
 - JGT: `jgt <LBL>`
@@ -108,7 +108,7 @@
 
   ```
     jgt label0
-    jump to label0 if '>' bit is set
+    - jump to label0 if '>' bit is set
   ```
 
 - JEQ: `jeq <LBL>`
@@ -116,7 +116,7 @@
 
   ```
     jeq label0
-    jump to label0 if '=' bit is set
+    - jump to label0 if '=' bit is set
   ```
 
 - JNE: `jne <LBL>`
@@ -124,7 +124,7 @@
 
   ```
     jne label0
-    jump to label0 if '=' bit is not set
+    - jump to label0 if '=' bit is not set
   ```
 
 - JMP: `jmp <LBL>`
@@ -132,7 +132,7 @@
 
   ```
     jmp label0
-    jump to label0
+    - jump to label0
   ```
 
 - RUN: `run <LBL>`
@@ -155,12 +155,19 @@
 - DIE: `die`
   ends program
 
+  ```
+  die
+  - this wont run
+  prt #0
+
+  ```
+
 - OUT: `out <NUM | REG | MEM | CHR>`
   print char
   ```
     mov 97 #0
     out #0
-    prints 'a'
+    - prints 'a'
   ```
 - PRT: `prt <NUM | REG | MEM | CHR>`
   print value
@@ -168,15 +175,38 @@
   ```
     mov 97 #0
     out #0
-    prints '97'
+    - prints '97'
   ```
 
 - @ (include): `@ <filename>`
-  includes the content at that location<br>
-  filename must be without extension, it will append '.dis'
+
+  - includes the content at that location<br>
+  - filename must be without extension, it will append '.dis'
+
   ```
     @ hello
-    includes the file "hello.dis"
+    - includes the file "hello.dis"
+  ```
+
+- RDN: `rdn <MEM | REG>`
+  read from stdin and parse as number
+  sets #e
+
+  ```
+  rdn #0
+  - 1 enter
+  prt #0
+  - outputs '1'
+  ```
+
+- RDC: `rdc <MEM | REG>`
+  read from stdin and parse first char as number
+  sets #e
+  ```
+  rdc #0
+  - 1 enter
+  prt #0
+  - outputs '49'
   ```
 
 ## Example
