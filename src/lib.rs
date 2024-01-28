@@ -45,7 +45,7 @@ impl ArgT {
         if arg_types.contains(&(ArgT::MEM as u8)) && arg.starts_with("&") {
             let mem_t: MemT;
             if arg[1..].starts_with("#") {
-                let r_k = arg[1..].to_string();
+                let r_k = arg[2..].to_string();
 
                 if !registers.contains(&r_k) {
                     return Err(format!("Invalid register: {}", r_k));
