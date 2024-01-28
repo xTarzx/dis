@@ -1,0 +1,24 @@
+mov 0 #0
+read:
+rdc &#0
+cmp 0 #e
+add 1 #0
+jeq read
+mov 0 &#0
+
+mov 0 #0
+print:
+cmp 0 &#0
+jeq end
+mov &#0 #1
+cmp .Z #1
+jeq skip
+jgt skip
+sub 32 #1
+skip:
+out #1
+add 1 #0
+jmp print
+
+end:
+out 10
