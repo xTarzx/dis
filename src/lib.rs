@@ -12,7 +12,7 @@ enum MemT {
 
 #[derive(Debug, PartialEq)]
 enum ArgT {
-    NUM(u8),
+    NUM(u16),
     REG(String),
     MEM(MemT),
     CHR(char),
@@ -77,7 +77,7 @@ impl ArgT {
 
         if arg_types.contains(&(ArgT::NUM as u8)) {
             // number
-            let n = match arg.parse::<u8>() {
+            let n = match arg.parse::<u16>() {
                 Ok(n) => n,
                 Err(_) => return Err(format!("Expected a number: {}", arg)),
             };
@@ -126,8 +126,8 @@ pub struct Token {
 }
 
 pub struct DIS {
-    registers: HashMap<String, u8>,
-    memory: [u8; MEM_N],
+    registers: HashMap<String, u16>,
+    pub memory: [u16; MEM_N],
 
     ret_stack: [usize; STK_N],
     sp: usize,
@@ -143,7 +143,7 @@ pub struct DIS {
 
 impl DIS {
     pub fn new() -> DIS {
-        let mut registers: HashMap<String, u8> = HashMap::new();
+        let mut registers: HashMap<String, u16> = HashMap::new();
         registers.insert("0".into(), 0);
         registers.insert("1".into(), 0);
         registers.insert("2".into(), 0);
@@ -611,13 +611,17 @@ impl DIS {
     }
 
     pub fn step(&mut self) {
+        if self.pc >= self.program.len() {
+            return;
+        }
+
         let token = &self.program[self.pc];
 
         match &token.itype {
             IType::MOV(arg1, arg2) => {
                 let src = match arg1 {
                     ArgT::NUM(n) => *n,
-                    ArgT::CHR(c) => *c as u8,
+                    ArgT::CHR(c) => *c as u16,
                     ArgT::REG(r_k) => self.registers[r_k],
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => self.memory[*m_n],
@@ -649,7 +653,7 @@ impl DIS {
             IType::ADD(arg1, arg2) => {
                 let src = match arg1 {
                     ArgT::NUM(n) => *n,
-                    ArgT::CHR(c) => *c as u8,
+                    ArgT::CHR(c) => *c as u16,
                     ArgT::REG(r_k) => self.registers[r_k],
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => self.memory[*m_n],
@@ -681,7 +685,7 @@ impl DIS {
             IType::SUB(arg1, arg2) => {
                 let src = match arg1 {
                     ArgT::NUM(n) => *n,
-                    ArgT::CHR(c) => *c as u8,
+                    ArgT::CHR(c) => *c as u16,
                     ArgT::REG(r_k) => self.registers[r_k],
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => self.memory[*m_n],
@@ -714,7 +718,7 @@ impl DIS {
             IType::CMP(arg1, arg2) => {
                 let a = match arg1 {
                     ArgT::NUM(n) => *n,
-                    ArgT::CHR(c) => *c as u8,
+                    ArgT::CHR(c) => *c as u16,
                     ArgT::REG(r_k) => self.registers[r_k],
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => self.memory[*m_n],
@@ -728,7 +732,7 @@ impl DIS {
 
                 let b = match arg2 {
                     ArgT::NUM(n) => *n,
-                    ArgT::CHR(c) => *c as u8,
+                    ArgT::CHR(c) => *c as u16,
                     ArgT::REG(r_k) => self.registers[r_k],
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => self.memory[*m_n],
@@ -798,7 +802,7 @@ impl DIS {
             IType::OUT(arg) => {
                 match arg {
                     ArgT::NUM(n) => {
-                        print!("{}", *n as char);
+                        print!("{}", *n as u8 as char);
                     }
 
                     ArgT::CHR(c) => {
@@ -806,15 +810,15 @@ impl DIS {
                     }
 
                     ArgT::REG(r_k) => {
-                        print!("{}", self.registers[r_k] as char);
+                        print!("{}", self.registers[r_k] as u8 as char);
                     }
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => {
-                            print!("{}", self.memory[*m_n] as char);
+                            print!("{}", self.memory[*m_n] as u8 as char);
                         }
                         MemT::REG(r_k) => {
                             let m_n = self.registers[r_k] as usize;
-                            print!("{}", self.memory[m_n] as char);
+                            print!("{}", self.memory[m_n] as u8 as char);
                         }
                     },
                     other => unreachable!("UNREACHABLE: {:?}", other),
@@ -882,16 +886,16 @@ impl DIS {
                     self.registers.insert("e".into(), 0);
                     match arg {
                         ArgT::REG(r_k) => {
-                            self.registers.insert(r_k.to_owned(), input.unwrap());
+                            self.registers.insert(r_k.to_owned(), input.unwrap() as u16);
                         }
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => {
-                                self.memory[*m_n] = input.unwrap();
+                                self.memory[*m_n] = input.unwrap() as u16;
                             }
                             MemT::REG(r_k) => {
                                 let m_n = self.registers[r_k] as usize;
 
-                                self.memory[m_n] = input.unwrap();
+                                self.memory[m_n] = input.unwrap() as u16;
                             }
                         },
                         other => unreachable!("UNREACHABLE: {:?}", other),
@@ -913,16 +917,16 @@ impl DIS {
 
                     match arg {
                         ArgT::REG(r_k) => {
-                            self.registers.insert(r_k.to_owned(), input);
+                            self.registers.insert(r_k.to_owned(), input as u16);
                         }
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => {
-                                self.memory[*m_n] = input;
+                                self.memory[*m_n] = input as u16;
                             }
                             MemT::REG(r_k) => {
                                 let m_n = self.registers[r_k] as usize;
 
-                                self.memory[m_n] = input;
+                                self.memory[m_n] = input as u16;
                             }
                         },
                         other => unreachable!("UNREACHABLE: {:?}", other),
@@ -964,10 +968,10 @@ impl DIS {
                 max = max.min(input.len());
 
                 for n in 0..max {
-                    self.memory[dst + n] = input[n] as u8;
+                    self.memory[dst + n] = input[n] as u16;
                 }
 
-                self.registers.insert("3".into(), max as u8);
+                self.registers.insert("3".into(), max as u16);
             }
 
             IType::NULL => {}
