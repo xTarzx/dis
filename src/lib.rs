@@ -610,372 +610,376 @@ impl DIS {
         return Err(());
     }
 
-    pub fn run(&mut self) {
-        while self.pc < self.program.len() {
-            let token = &self.program[self.pc];
+    pub fn step(&mut self) {
+        let token = &self.program[self.pc];
 
-            match &token.itype {
-                IType::MOV(arg1, arg2) => {
-                    let src = match arg1 {
-                        ArgT::NUM(n) => *n,
-                        ArgT::CHR(c) => *c as u8,
-                        ArgT::REG(r_k) => self.registers[r_k],
-                        ArgT::MEM(mem_t) => match mem_t {
-                            MemT::ADR(m_n) => self.memory[*m_n],
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                self.memory[m_n]
-                            }
-                        },
-                        other => unreachable!("{:?}", other),
-                    };
-
-                    match arg2 {
-                        ArgT::REG(dst) => {
-                            self.registers.insert(dst.to_owned(), src);
+        match &token.itype {
+            IType::MOV(arg1, arg2) => {
+                let src = match arg1 {
+                    ArgT::NUM(n) => *n,
+                    ArgT::CHR(c) => *c as u8,
+                    ArgT::REG(r_k) => self.registers[r_k],
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => self.memory[*m_n],
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            self.memory[m_n]
                         }
-                        ArgT::MEM(mem_t) => match mem_t {
-                            MemT::ADR(m_n) => {
-                                self.memory[*m_n] = src;
-                            }
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                self.memory[m_n] = src;
-                            }
-                        },
-                        other => unreachable!("{:?}", other),
-                    };
-                }
+                    },
+                    other => unreachable!("{:?}", other),
+                };
 
-                IType::ADD(arg1, arg2) => {
-                    let src = match arg1 {
-                        ArgT::NUM(n) => *n,
-                        ArgT::CHR(c) => *c as u8,
-                        ArgT::REG(r_k) => self.registers[r_k],
-                        ArgT::MEM(mem_t) => match mem_t {
-                            MemT::ADR(m_n) => self.memory[*m_n],
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                self.memory[m_n]
-                            }
-                        },
-                        other => unreachable!("UNREACHABLE: {:?}", other),
-                    };
-
-                    match arg2 {
-                        ArgT::REG(dst) => {
-                            let (res, _) = self.registers[dst].overflowing_add(src);
-                            self.registers.insert(dst.to_owned(), res);
-                        }
-                        ArgT::MEM(mem_t) => match mem_t {
-                            MemT::ADR(m_n) => {
-                                self.memory[*m_n] = self.memory[*m_n].overflowing_add(src).0;
-                            }
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                self.memory[m_n] = self.memory[m_n].overflowing_add(src).0;
-                            }
-                        },
-                        other => unreachable!("UNREACHABLE: {:?}", other),
-                    }
-                }
-                IType::SUB(arg1, arg2) => {
-                    let src = match arg1 {
-                        ArgT::NUM(n) => *n,
-                        ArgT::CHR(c) => *c as u8,
-                        ArgT::REG(r_k) => self.registers[r_k],
-                        ArgT::MEM(mem_t) => match mem_t {
-                            MemT::ADR(m_n) => self.memory[*m_n],
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                self.memory[m_n]
-                            }
-                        },
-                        other => unreachable!("UNREACHABLE: {:?}", other),
-                    };
-
-                    match arg2 {
-                        ArgT::REG(dst) => {
-                            let (res, _) = self.registers[dst].overflowing_sub(src);
-                            self.registers.insert(dst.to_owned(), res);
-                        }
-                        ArgT::MEM(mem_t) => match mem_t {
-                            MemT::ADR(m_n) => {
-                                self.memory[*m_n] = self.memory[*m_n].overflowing_sub(src).0;
-                            }
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                self.memory[m_n] = self.memory[m_n].overflowing_sub(src).0;
-                            }
-                        },
-                        other => unreachable!("UNREACHABLE: {:?}", other),
-                    }
-                }
-
-                IType::CMP(arg1, arg2) => {
-                    let a = match arg1 {
-                        ArgT::NUM(n) => *n,
-                        ArgT::CHR(c) => *c as u8,
-                        ArgT::REG(r_k) => self.registers[r_k],
-                        ArgT::MEM(mem_t) => match mem_t {
-                            MemT::ADR(m_n) => self.memory[*m_n],
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                self.memory[m_n]
-                            }
-                        },
-                        other => unreachable!("UNREACHABLE: {:?}", other),
-                    };
-
-                    let b = match arg2 {
-                        ArgT::NUM(n) => *n,
-                        ArgT::CHR(c) => *c as u8,
-                        ArgT::REG(r_k) => self.registers[r_k],
-                        ArgT::MEM(mem_t) => match mem_t {
-                            MemT::ADR(m_n) => self.memory[*m_n],
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                self.memory[m_n]
-                            }
-                        },
-                        other => unreachable!("UNREACHABLE: {:?}", other),
-                    };
-
-                    self.cmp = 0;
-                    if a == b {
-                        self.cmp |= CMP::EQ as u8;
-                    }
-                    if a < b {
-                        self.cmp |= CMP::LT as u8;
-                    }
-                    if a > b {
-                        self.cmp |= CMP::GT as u8;
-                    }
-                }
-
-                IType::JLT(ArgT::LBL(l)) => {
-                    if self.cmp & CMP::LT as u8 != 0 {
-                        self.pc = self.label_map[l].overflowing_sub(1).0;
-                    }
-                }
-
-                IType::JGT(ArgT::LBL(l)) => {
-                    if self.cmp & CMP::GT as u8 != 0 {
-                        self.pc = self.label_map[l].overflowing_sub(1).0;
-                    }
-                }
-
-                IType::JEQ(ArgT::LBL(l)) => {
-                    if self.cmp & CMP::EQ as u8 != 0 {
-                        self.pc = self.label_map[l].overflowing_sub(1).0;
-                    }
-                }
-
-                IType::JNE(ArgT::LBL(l)) => {
-                    if self.cmp & CMP::EQ as u8 == 0 {
-                        self.pc = self.label_map[l].overflowing_sub(1).0;
-                    }
-                }
-
-                IType::JMP(ArgT::LBL(l)) => {
-                    self.pc = self.label_map[l].overflowing_sub(1).0;
-                }
-
-                IType::RUN(ArgT::LBL(l)) => {
-                    self.ret_stack[self.sp] = self.pc;
-                    self.sp = self.sp.overflowing_add(1).0;
-                    self.pc = self.label_map[l].overflowing_sub(1).0;
-                }
-
-                IType::RET => {
-                    self.sp = self.sp.overflowing_sub(1).0;
-                    self.pc = self.ret_stack[self.sp];
-                }
-
-                IType::DIE => {
-                    return;
-                }
-
-                IType::OUT(arg) => {
-                    match arg {
-                        ArgT::NUM(n) => {
-                            print!("{}", *n as char);
-                        }
-
-                        ArgT::CHR(c) => {
-                            print!("{}", *c as char);
-                        }
-
-                        ArgT::REG(r_k) => {
-                            print!("{}", self.registers[r_k] as char);
-                        }
-                        ArgT::MEM(mem_t) => match mem_t {
-                            MemT::ADR(m_n) => {
-                                print!("{}", self.memory[*m_n] as char);
-                            }
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                print!("{}", self.memory[m_n] as char);
-                            }
-                        },
-                        other => unreachable!("UNREACHABLE: {:?}", other),
-                    }
-                    io::stdout().flush().unwrap();
-                }
-
-                IType::DBG(arg) => match arg {
-                    ArgT::NUM(n) => {
-                        println!("DBG #: {}", *n);
-                    }
-
-                    ArgT::CHR(c) => {
-                        println!("DBG #: {} ({})", *c, *c as u8);
-                    }
-
-                    ArgT::REG(r_k) => {
-                        println!("DBG #{}: {}", r_k, self.registers[r_k]);
+                match arg2 {
+                    ArgT::REG(dst) => {
+                        self.registers.insert(dst.to_owned(), src);
                     }
                     ArgT::MEM(mem_t) => match mem_t {
                         MemT::ADR(m_n) => {
-                            println!("DBG &{}: {}", *m_n, self.memory[*m_n]);
+                            self.memory[*m_n] = src;
                         }
                         MemT::REG(r_k) => {
                             let m_n = self.registers[r_k] as usize;
-                            println!("DBG &#{} (&{}): {}", r_k, m_n, self.memory[m_n]);
+                            self.memory[m_n] = src;
+                        }
+                    },
+                    other => unreachable!("{:?}", other),
+                };
+            }
+
+            IType::ADD(arg1, arg2) => {
+                let src = match arg1 {
+                    ArgT::NUM(n) => *n,
+                    ArgT::CHR(c) => *c as u8,
+                    ArgT::REG(r_k) => self.registers[r_k],
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => self.memory[*m_n],
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            self.memory[m_n]
                         }
                     },
                     other => unreachable!("UNREACHABLE: {:?}", other),
+                };
+
+                match arg2 {
+                    ArgT::REG(dst) => {
+                        let (res, _) = self.registers[dst].overflowing_add(src);
+                        self.registers.insert(dst.to_owned(), res);
+                    }
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => {
+                            self.memory[*m_n] = self.memory[*m_n].overflowing_add(src).0;
+                        }
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            self.memory[m_n] = self.memory[m_n].overflowing_add(src).0;
+                        }
+                    },
+                    other => unreachable!("UNREACHABLE: {:?}", other),
+                }
+            }
+            IType::SUB(arg1, arg2) => {
+                let src = match arg1 {
+                    ArgT::NUM(n) => *n,
+                    ArgT::CHR(c) => *c as u8,
+                    ArgT::REG(r_k) => self.registers[r_k],
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => self.memory[*m_n],
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            self.memory[m_n]
+                        }
+                    },
+                    other => unreachable!("UNREACHABLE: {:?}", other),
+                };
+
+                match arg2 {
+                    ArgT::REG(dst) => {
+                        let (res, _) = self.registers[dst].overflowing_sub(src);
+                        self.registers.insert(dst.to_owned(), res);
+                    }
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => {
+                            self.memory[*m_n] = self.memory[*m_n].overflowing_sub(src).0;
+                        }
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            self.memory[m_n] = self.memory[m_n].overflowing_sub(src).0;
+                        }
+                    },
+                    other => unreachable!("UNREACHABLE: {:?}", other),
+                }
+            }
+
+            IType::CMP(arg1, arg2) => {
+                let a = match arg1 {
+                    ArgT::NUM(n) => *n,
+                    ArgT::CHR(c) => *c as u8,
+                    ArgT::REG(r_k) => self.registers[r_k],
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => self.memory[*m_n],
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            self.memory[m_n]
+                        }
+                    },
+                    other => unreachable!("UNREACHABLE: {:?}", other),
+                };
+
+                let b = match arg2 {
+                    ArgT::NUM(n) => *n,
+                    ArgT::CHR(c) => *c as u8,
+                    ArgT::REG(r_k) => self.registers[r_k],
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => self.memory[*m_n],
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            self.memory[m_n]
+                        }
+                    },
+                    other => unreachable!("UNREACHABLE: {:?}", other),
+                };
+
+                self.cmp = 0;
+                if a == b {
+                    self.cmp |= CMP::EQ as u8;
+                }
+                if a < b {
+                    self.cmp |= CMP::LT as u8;
+                }
+                if a > b {
+                    self.cmp |= CMP::GT as u8;
+                }
+            }
+
+            IType::JLT(ArgT::LBL(l)) => {
+                if self.cmp & CMP::LT as u8 != 0 {
+                    self.pc = self.label_map[l].overflowing_sub(1).0;
+                }
+            }
+
+            IType::JGT(ArgT::LBL(l)) => {
+                if self.cmp & CMP::GT as u8 != 0 {
+                    self.pc = self.label_map[l].overflowing_sub(1).0;
+                }
+            }
+
+            IType::JEQ(ArgT::LBL(l)) => {
+                if self.cmp & CMP::EQ as u8 != 0 {
+                    self.pc = self.label_map[l].overflowing_sub(1).0;
+                }
+            }
+
+            IType::JNE(ArgT::LBL(l)) => {
+                if self.cmp & CMP::EQ as u8 == 0 {
+                    self.pc = self.label_map[l].overflowing_sub(1).0;
+                }
+            }
+
+            IType::JMP(ArgT::LBL(l)) => {
+                self.pc = self.label_map[l].overflowing_sub(1).0;
+            }
+
+            IType::RUN(ArgT::LBL(l)) => {
+                self.ret_stack[self.sp] = self.pc;
+                self.sp = self.sp.overflowing_add(1).0;
+                self.pc = self.label_map[l].overflowing_sub(1).0;
+            }
+
+            IType::RET => {
+                self.sp = self.sp.overflowing_sub(1).0;
+                self.pc = self.ret_stack[self.sp];
+            }
+
+            IType::DIE => {
+                return;
+            }
+
+            IType::OUT(arg) => {
+                match arg {
+                    ArgT::NUM(n) => {
+                        print!("{}", *n as char);
+                    }
+
+                    ArgT::CHR(c) => {
+                        print!("{}", *c as char);
+                    }
+
+                    ArgT::REG(r_k) => {
+                        print!("{}", self.registers[r_k] as char);
+                    }
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => {
+                            print!("{}", self.memory[*m_n] as char);
+                        }
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            print!("{}", self.memory[m_n] as char);
+                        }
+                    },
+                    other => unreachable!("UNREACHABLE: {:?}", other),
+                }
+                io::stdout().flush().unwrap();
+            }
+
+            IType::DBG(arg) => match arg {
+                ArgT::NUM(n) => {
+                    println!("DBG #: {}", *n);
+                }
+
+                ArgT::CHR(c) => {
+                    println!("DBG #: {} ({})", *c, *c as u8);
+                }
+
+                ArgT::REG(r_k) => {
+                    println!("DBG #{}: {}", r_k, self.registers[r_k]);
+                }
+                ArgT::MEM(mem_t) => match mem_t {
+                    MemT::ADR(m_n) => {
+                        println!("DBG &{}: {}", *m_n, self.memory[*m_n]);
+                    }
+                    MemT::REG(r_k) => {
+                        let m_n = self.registers[r_k] as usize;
+                        println!("DBG &#{} (&{}): {}", r_k, m_n, self.memory[m_n]);
+                    }
                 },
+                other => unreachable!("UNREACHABLE: {:?}", other),
+            },
 
-                IType::PRT(arg) => {
+            IType::PRT(arg) => {
+                match arg {
+                    ArgT::NUM(n) => {
+                        print!("{}", *n);
+                    }
+
+                    ArgT::CHR(c) => {
+                        print!("{}", *c as u8);
+                    }
+
+                    ArgT::REG(r_k) => {
+                        print!("{}", self.registers[r_k]);
+                    }
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => {
+                            print!("{}", self.memory[*m_n]);
+                        }
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            print!("{}", self.memory[m_n]);
+                        }
+                    },
+                    other => unreachable!("UNREACHABLE: {:?}", other),
+                }
+                io::stdout().flush().unwrap();
+            }
+            IType::RDN(arg) => {
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).unwrap();
+                let input = input.trim().parse::<u8>();
+                if input.is_err() {
+                    self.registers.insert("e".into(), 1);
+                } else {
+                    self.registers.insert("e".into(), 0);
                     match arg {
-                        ArgT::NUM(n) => {
-                            print!("{}", *n);
-                        }
-
-                        ArgT::CHR(c) => {
-                            print!("{}", *c as u8);
-                        }
-
                         ArgT::REG(r_k) => {
-                            print!("{}", self.registers[r_k]);
+                            self.registers.insert(r_k.to_owned(), input.unwrap());
                         }
                         ArgT::MEM(mem_t) => match mem_t {
                             MemT::ADR(m_n) => {
-                                print!("{}", self.memory[*m_n]);
+                                self.memory[*m_n] = input.unwrap();
                             }
                             MemT::REG(r_k) => {
                                 let m_n = self.registers[r_k] as usize;
-                                print!("{}", self.memory[m_n]);
+
+                                self.memory[m_n] = input.unwrap();
                             }
                         },
                         other => unreachable!("UNREACHABLE: {:?}", other),
                     }
-                    io::stdout().flush().unwrap();
                 }
-                IType::RDN(arg) => {
-                    let mut input = String::new();
-                    std::io::stdin().read_line(&mut input).unwrap();
-                    let input = input.trim().parse::<u8>();
-                    if input.is_err() {
-                        self.registers.insert("e".into(), 1);
-                    } else {
-                        self.registers.insert("e".into(), 0);
-                        match arg {
-                            ArgT::REG(r_k) => {
-                                self.registers.insert(r_k.to_owned(), input.unwrap());
-                            }
-                            ArgT::MEM(mem_t) => match mem_t {
-                                MemT::ADR(m_n) => {
-                                    self.memory[*m_n] = input.unwrap();
-                                }
-                                MemT::REG(r_k) => {
-                                    let m_n = self.registers[r_k] as usize;
-
-                                    self.memory[m_n] = input.unwrap();
-                                }
-                            },
-                            other => unreachable!("UNREACHABLE: {:?}", other),
-                        }
-                    }
-                }
-
-                IType::RDC(arg) => {
-                    let mut input = String::new();
-                    std::io::stdin().read_line(&mut input).unwrap();
-                    let input = input.trim().chars().nth(0);
-
-                    if input.is_none() {
-                        self.registers.insert("e".into(), 1);
-                    } else {
-                        self.registers.insert("e".into(), 0);
-
-                        let input = input.unwrap() as u8;
-
-                        match arg {
-                            ArgT::REG(r_k) => {
-                                self.registers.insert(r_k.to_owned(), input);
-                            }
-                            ArgT::MEM(mem_t) => match mem_t {
-                                MemT::ADR(m_n) => {
-                                    self.memory[*m_n] = input;
-                                }
-                                MemT::REG(r_k) => {
-                                    let m_n = self.registers[r_k] as usize;
-
-                                    self.memory[m_n] = input;
-                                }
-                            },
-                            other => unreachable!("UNREACHABLE: {:?}", other),
-                        }
-                    }
-                }
-
-                IType::RLN(arg1, arg2) => {
-                    let mut input = String::new();
-                    std::io::stdin().read_line(&mut input).unwrap();
-                    let input: Vec<char> = input.trim().chars().collect();
-
-                    let dst: usize = match arg1 {
-                        ArgT::MEM(mem_t) => match mem_t {
-                            MemT::ADR(m_n) => *m_n,
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                m_n
-                            }
-                        },
-                        other => unreachable!("UNREACHABLE: {:?}", other),
-                    };
-
-                    let mut max = match arg2 {
-                        Some(ArgT::NUM(n)) => *n as usize,
-                        Some(ArgT::REG(r_k)) => self.registers[r_k] as usize,
-                        Some(ArgT::MEM(mem_t)) => match mem_t {
-                            MemT::ADR(m_n) => self.memory[*m_n] as usize,
-                            MemT::REG(r_k) => {
-                                let m_n = self.registers[r_k] as usize;
-                                self.memory[m_n] as usize
-                            }
-                        },
-
-                        Some(other) => unreachable!("UNREACHABLE: {:?}", other),
-                        None => input.len(),
-                    };
-
-                    max = max.min(input.len());
-
-                    for n in 0..max {
-                        self.memory[dst + n] = input[n] as u8;
-                    }
-
-                    self.registers.insert("3".into(), max as u8);
-                }
-
-                IType::NULL => {}
-                other => unreachable!("UNREACHABLE: {:?}", other),
             }
 
-            self.pc = self.pc.overflowing_add(1).0;
+            IType::RDC(arg) => {
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).unwrap();
+                let input = input.trim().chars().nth(0);
+
+                if input.is_none() {
+                    self.registers.insert("e".into(), 1);
+                } else {
+                    self.registers.insert("e".into(), 0);
+
+                    let input = input.unwrap() as u8;
+
+                    match arg {
+                        ArgT::REG(r_k) => {
+                            self.registers.insert(r_k.to_owned(), input);
+                        }
+                        ArgT::MEM(mem_t) => match mem_t {
+                            MemT::ADR(m_n) => {
+                                self.memory[*m_n] = input;
+                            }
+                            MemT::REG(r_k) => {
+                                let m_n = self.registers[r_k] as usize;
+
+                                self.memory[m_n] = input;
+                            }
+                        },
+                        other => unreachable!("UNREACHABLE: {:?}", other),
+                    }
+                }
+            }
+
+            IType::RLN(arg1, arg2) => {
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).unwrap();
+                let input: Vec<char> = input.trim().chars().collect();
+
+                let dst: usize = match arg1 {
+                    ArgT::MEM(mem_t) => match mem_t {
+                        MemT::ADR(m_n) => *m_n,
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            m_n
+                        }
+                    },
+                    other => unreachable!("UNREACHABLE: {:?}", other),
+                };
+
+                let mut max = match arg2 {
+                    Some(ArgT::NUM(n)) => *n as usize,
+                    Some(ArgT::REG(r_k)) => self.registers[r_k] as usize,
+                    Some(ArgT::MEM(mem_t)) => match mem_t {
+                        MemT::ADR(m_n) => self.memory[*m_n] as usize,
+                        MemT::REG(r_k) => {
+                            let m_n = self.registers[r_k] as usize;
+                            self.memory[m_n] as usize
+                        }
+                    },
+
+                    Some(other) => unreachable!("UNREACHABLE: {:?}", other),
+                    None => input.len(),
+                };
+
+                max = max.min(input.len());
+
+                for n in 0..max {
+                    self.memory[dst + n] = input[n] as u8;
+                }
+
+                self.registers.insert("3".into(), max as u8);
+            }
+
+            IType::NULL => {}
+            other => unreachable!("UNREACHABLE: {:?}", other),
+        }
+
+        self.pc = self.pc.overflowing_add(1).0;
+    }
+
+    pub fn run(&mut self) {
+        while self.pc < self.program.len() {
+            self.step();
         }
     }
 }
