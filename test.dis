@@ -1,0 +1,24 @@
+mov 1024 #0
+add 119 #0
+mov 1 &#0
+
+loop:
+rdc #1
+cmp .a #1
+jne skip_a
+
+mov 0 &#0
+sub 1 #0
+mov 1 &#0
+jmp loop
+
+skip_a:
+cmp .d #1
+jne skip_d
+
+mov 0 &#0
+add 1 #0
+mov 1 &#0
+
+skip_d:
+jmp loop
