@@ -139,6 +139,8 @@ pub struct DIS {
     label_map: HashMap<String, usize>,
 
     pc: usize,
+
+    die: bool,
 }
 
 impl DIS {
@@ -163,6 +165,7 @@ impl DIS {
             label_map: HashMap::new(),
 
             cmp: 0,
+            die: false,
         }
     }
 
@@ -796,6 +799,7 @@ impl DIS {
             }
 
             IType::DIE => {
+                self.die = true;
                 return;
             }
 
@@ -982,7 +986,7 @@ impl DIS {
     }
 
     pub fn run(&mut self) {
-        while self.pc < self.program.len() {
+        while !self.die && self.pc < self.program.len() {
             self.step();
         }
     }
