@@ -2,229 +2,229 @@
 
 ## Syntax
 
-- COMMENTS: `-`
-  lines starting with '-' are ignored
+-   COMMENTS: `-`
+    lines starting with '-' are ignored
 
-  ```
-    - this is a comment
-    add 2 #2
-  ```
+    ```
+      - this is a comment
+      add 2 #2
+    ```
 
-- NUM: `<number>`
-  ```
-    13
-    - value 13
-  ```
-- CHR: `.<character>`
-  ```
-    .c
-    - ascii value of c
-  ```
-- REG: `#<register index>`
+-   NUM: `<number>`
+    ```
+      13
+      - value 13
+    ```
+-   CHR: `.<character>`
+    ```
+      .c
+      - ascii value of c
+    ```
+-   REG: `#<register index>`
 
-  ```
-    #0
-    - register 0
-  ```
+    ```
+      #0
+      - register 0
+    ```
 
-- MEM:
+-   MEM:
 
-  - ADR: `&<address>`
+    -   ADR: `&<address>`
 
-  ```
-    &20
-    - memory at address 20
-  ```
+    ```
+      &20
+      - memory at address 20
+    ```
 
-  - REG: `&#<register index>`
+    -   REG: `&#<register index>`
 
-  ```
-    &#1
-    - memory at address of value in register 1
-  ```
+    ```
+      &#1
+      - memory at address of value in register 1
+    ```
 
-- LBL: `<label>`
-  labels are set in beggining of line
-  lines can have just a label
-  ```
-    label0:
-    label1: add 1 #0
-    jmp label0
-  ```
+-   LBL: `<label>`
+    labels are set in beggining of line
+    lines can have just a label
+    ```
+      label0:
+      label1: add 1 #0
+      jmp label0
+    ```
 
 ## Instructions
 
-- MOV: `mov <NUM | REG | MEM | CHR> <REG | MEM>`
+-   mov: `mov <NUM | REG | MEM | CHR> <REG | MEM>`
 
-  ```
-    mov 69 #0
-    - set register 0 value to 69
+    ```
+      mov 69 #0
+      - set register 0 value to 69
 
-    mov #1 &#0
-    - set memory at address of value in register 0 to value in register 1
-  ```
+      mov #1 &#0
+      - set memory at address of value in register 0 to value in register 1
+    ```
 
-- ADD: `add <NUM | REG | MEM | CHR> <REG | MEM>`
+-   add: `add <NUM | REG | MEM | CHR> <REG | MEM>`
 
-  ```
-    add 3 #0
-    - increment value in register 0 by 3
+    ```
+      add 3 #0
+      - increment value in register 0 by 3
 
-    add .a #1
-    - increment value in register 0 by ascii valye of 'a' (97)
-  ```
+      add .a #1
+      - increment value in register 0 by ascii valye of 'a' (97)
+    ```
 
-- SUB: `sub <NUM | REG | MEM | CHR> <REG | MEM>`
+-   sub: `sub <NUM | REG | MEM | CHR> <REG | MEM>`
 
-  ```
-    sub 3 #0
-    - dec value in register 0 by 3
+    ```
+      sub 3 #0
+      - dec value in register 0 by 3
 
-    sub .a #1
-    - dec value in register 0 by ascii valye of 'a' (97)
-  ```
+      sub .a #1
+      - dec value in register 0 by ascii valye of 'a' (97)
+    ```
 
-- CMP: `cmp <NUM | REG | MEM | CHR> <REG | MEM>`
-  sets comparison bits: `><=`
+-   cmp: `cmp <NUM | REG | MEM | CHR> <REG | MEM>`
+    sets comparison bits: `><=`
 
-  ```
-    cmp 13 #1
-    - compare 13 with value in register 1
+    ```
+      cmp 13 #1
+      - compare 13 with value in register 1
 
-    cmp #0 &#3
-    - compare value in register 0 with value at memory address of value in register 3
-  ```
+      cmp #0 &#3
+      - compare value in register 0 with value at memory address of value in register 3
+    ```
 
-- JLT: `jlt <LBL>`
-  jump if less than
+-   jlt: `jlt <LBL>`
+    jump if less than
 
-  ```
-    jlt label0
-    - jump to label0 if '<' bit is set
-  ```
+    ```
+      jlt label0
+      - jump to label0 if '<' bit is set
+    ```
 
-- JGT: `jgt <LBL>`
-  jump if greater than
+-   jgt: `jgt <LBL>`
+    jump if greater than
 
-  ```
-    jgt label0
-    - jump to label0 if '>' bit is set
-  ```
+    ```
+      jgt label0
+      - jump to label0 if '>' bit is set
+    ```
 
-- JEQ: `jeq <LBL>`
-  jump if equal
+-   jeq: `jeq <LBL>`
+    jump if equal
 
-  ```
-    jeq label0
-    - jump to label0 if '=' bit is set
-  ```
+    ```
+      jeq label0
+      - jump to label0 if '=' bit is set
+    ```
 
-- JNE: `jne <LBL>`
-  jump if not equal
+-   jne: `jne <LBL>`
+    jump if not equal
 
-  ```
-    jne label0
-    - jump to label0 if '=' bit is not set
-  ```
+    ```
+      jne label0
+      - jump to label0 if '=' bit is not set
+    ```
 
-- JMP: `jmp <LBL>`
-  jump to label
+-   jmp: `jmp <LBL>`
+    jump to label
 
-  ```
-    jmp label0
-    - jump to label0
-  ```
+    ```
+      jmp label0
+      - jump to label0
+    ```
 
-- RUN: `run <LBL>`
-  push current instruction address to stack and jump to label
+-   run: `run <LBL>`
+    push current instruction address to stack and jump to label
 
-  ```
-  run label0
-  ```
+    ```
+    run label0
+    ```
 
-- RET: `ret`
-  pops address from stack and jumps to it
+-   ret: `ret`
+    pops address from stack and jumps to it
 
-  ```
-  run label0
+    ```
+    run label0
 
-  label0:
-  ret
-  ```
+    label0:
+    ret
+    ```
 
-- DIE: `die`
-  ends program
+-   die: `die`
+    ends program
 
-  ```
-  die
-  - this wont run
-  prt #0
+    ```
+    die
+    - this wont run
+    prt #0
 
-  ```
+    ```
 
-- OUT: `out <NUM | REG | MEM | CHR>`
-  print char
-  ```
-    mov 97 #0
-    out #0
-    - prints 'a'
-  ```
-- PRT: `prt <NUM | REG | MEM | CHR>`
-  print value
+-   out: `out <NUM | REG | MEM | CHR>`
+    print char
+    ```
+      mov 97 #0
+      out #0
+      - prints 'a'
+    ```
+-   prt: `prt <NUM | REG | MEM | CHR>`
+    print value
 
-  ```
-    mov 97 #0
-    out #0
-    - prints '97'
-  ```
+    ```
+      mov 97 #0
+      out #0
+      - prints '97'
+    ```
 
-- @ (include): `@ <filename>`
+-   @ (include): `@ <filename>`
 
-  - includes the content at that location<br>
-  - filename must be without extension, it will append '.dis'
+    -   includes the content at that location<br>
+    -   filename must be without extension, it will append '.dis'
 
-  ```
-    @ hello
-    - includes the file "hello.dis"
-  ```
+    ```
+      @ hello
+      - includes the file "hello.dis"
+    ```
 
-- RDN: `rdn <MEM | REG>`
-  read from stdin and parse as number
-  sets #e
+-   rdn: `rdn <MEM | REG>`
+    read from stdin and parse as number
+    sets #e
 
-  ```
-  rdn #0
-  - 1 enter
-  prt #0
-  - outputs '1'
-  ```
+    ```
+    rdn #0
+    - 1 enter
+    prt #0
+    - outputs '1'
+    ```
 
-- RDC: `rdc <MEM | REG>`
-  read from stdin and parse first char as number
-  sets #e
+-   rdc: `rdc <MEM | REG>`
+    read from stdin and parse first char as number
+    sets #e
 
-  ```
-  rdc #0
-  - 1 enter
-  prt #0
-  - outputs '49'
-  ```
+    ```
+    rdc #0
+    - 1 enter
+    prt #0
+    - outputs '49'
+    ```
 
-- RLN: `rln <MEM> [NUM | REG | MEM]`
-  read line to address and return read count on #3<br>
-  optional arg: max characters to read
+-   rln: `rln <MEM> [NUM | REG | MEM]`
+    read line to address and return read count on #3<br>
+    optional arg: max characters to read
 
-  ```
-  rln &0
-  - stdin: test
-  - &0 &1 &2 &3
-  -  t  e  s  t
+    ```
+    rln &0
+    - stdin: test
+    - &0 &1 &2 &3
+    -  t  e  s  t
 
-  rln &10, 2
-  - stdin: test
-  - &10 &11 &12 &13
-  -  t    e   0   0
-  ```
+    rln &10, 2
+    - stdin: test
+    - &10 &11 &12 &13
+    -  t    e   0   0
+    ```
 
 ## Example
 
