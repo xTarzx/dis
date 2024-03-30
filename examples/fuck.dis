@@ -1,0 +1,28 @@
+- brainfuck program 30
+mov .+ &30
+mov .. &31
+
+- program memory 512
+- mp
+mov 0 &4
+- ip
+mov 0 &5
+
+
+mov &5 #0
+add 30 #0
+
+cmp 0 &#0
+jeq END
+cmp .+ &#0
+jne SKIP_PLUS
+out .+
+SKIP_PLUS:
+cmp .. &#0
+jne SKIP_DOT
+out ..
+SKIP_DOT:
+add 1 &5
+
+END:
+die
