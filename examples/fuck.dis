@@ -2,8 +2,8 @@
 @ fuck.bf
 
 - stack 510
-- sp 420
-
+- sp
+mov 0 &420
 
 - program memory 512
 - mp
@@ -21,124 +21,59 @@ jeq END
 CHECK_PLUS:
 cmp .+ &#0
 jne CHECK_MINUS
-- out .+
-mov &4 #1
-add 512 #1
+run load_data_ptr_to_r1
 add 1 &#1
 jmp NEXT
 
 CHECK_MINUS:
 cmp .- &#0
-jne CHECK_AR
-- out .+
-mov &4 #1
-add 512 #1
-add 1 &#1
-jmp NEXT
-
-CHECK_AR:
-cmp .> &#0
 jne CHECK_AL
-- out .>
-add 1 &4
+run load_data_ptr_to_r1
+sub 1 &#1
 jmp NEXT
 
 CHECK_AL:
 cmp .< &#0
-jne CHECK_OB
-- out .<
+jne CHECK_AR
 sub 1 &4
+jmp NEXT
+
+CHECK_AR:
+cmp .> &#0
+jne CHECK_DOT
+add 1 &4
+jmp NEXT
+
+CHECK_DOT:
+cmp .. &#0
+jne CHECK_OB
+run load_data_ptr_to_r1
+out &#1
 jmp NEXT
 
 CHECK_OB:
 cmp .[ &#0
 jne CHECK_CB
-- out .[
-mov &4 #1
-add 512 #1
+run load_data_ptr_to_r1
 cmp 0 &#1
-- if zero find matching bracket
-jne CB_CONT
-mov 0 #4
-
-add 1 &5
-CHECK_LOOP:
-mov &5 #0
-add 30 #0
-cmp 0 &#0
-jeq END
-
-cmp .] &#0
-jne NOT_CB
-
-cmp 0 #4
-jne NOT_MATCH
-
-jmp NEXT
-
-
-NOT_MATCH:
-sub 1 #4
-jmp CHECK_NEXT
-
-NOT_CB:
-cmp .[ &#0
-jne NOT_OB
-add 1 #4
-
-NOT_OB:
-CHECK_NEXT:
-add 1 &5
-jmp CHECK_LOOP
-
-
-- else push stack and continue
-CB_CONT:
-mov 510 #3
-sub &420 #3
-mov &4 &#3
-add 1 &420
+- not zero continue normal
+jne NEXT
+- jump to matching closing bracket
+run set_addr_to_matching_close
 jmp NEXT
 
 CHECK_CB:
 cmp .] &#0
-jne CHECK_COM
-- out .]
-mov &4 #1
-add 512 #1
+jne CHECK_COMMA
+run load_data_ptr_to_r1
 cmp 0 &#1
-- if zero continue
+- zero continue
 jeq NEXT
-- else jump back to matching
-mov 510 #3
-sub &420 #3
-mov #3 &4
+- jump to matching open bracket
+run set_addr_to_matching_open
 jmp NEXT
 
-
-CHECK_COM:
-cmp ., &#0
-jne CHECK_DOT
-- out .,
-jmp NEXT
-
-CHECK_DOT:
-cmp .. &#0
-jne UNKNOWN
-- out ..
-mov &4 #1
-add 512 #1
-out &#1
-jmp NEXT
-
-UNKNOWN:
-- ignore unknown chars
-jmp NEXT
-run print_unknown
-out &#1
-run print_nl
-jmp END
-
+CHECK_COMMA:
 NEXT:
 add 1 &5
 jmp LOOP
@@ -148,18 +83,53 @@ out 10
 die
 
 
-print_unknown:
-out .u
-out .n
-out .k
-out .n
-out .o
-out .w
-out .n
-out .:
-out 32
+load_data_ptr_to_r1:
+mov &4 #1
+add 512 #1
 ret
 
-print_nl:
-out 10
+
+set_addr_to_matching_close:
+add 1 &5
+mov &5 #0
+add 30 #0
+
+cmp .[ &#0
+jne MC_NOT_OPEN
+add 1 &420
+jmp set_addr_to_matching_close
+
+MC_NOT_OPEN:
+cmp .] &#0
+jne set_addr_to_matching_close
+
+cmp 0 &420
+jne im_running_out_of_name_ideas
 ret
+
+im_running_out_of_name_ideas:
+sub 1 &420
+jmp set_addr_to_matching_close
+
+
+set_addr_to_matching_open:
+sub 1 &5
+mov &5 #0
+add 30 #0
+
+cmp .] &#0
+jne MO_NOT_CLOSE
+add 1 &420
+jmp set_addr_to_matching_open
+
+MO_NOT_CLOSE:
+cmp .[ &#0
+jne set_addr_to_matching_open
+
+cmp 0 &420
+jne im_running_out_of_name_ideas_2
+ret
+
+im_running_out_of_name_ideas_2:
+sub 1 &420
+jmp set_addr_to_matching_open
