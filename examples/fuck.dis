@@ -74,6 +74,12 @@ run set_addr_to_matching_open
 jmp NEXT
 
 CHECK_COMMA:
+cmp ., &#0
+jne NEXT
+run load_data_ptr_to_r1
+rdc &#1
+jmp NEXT
+
 NEXT:
 add 1 &5
 jmp LOOP
