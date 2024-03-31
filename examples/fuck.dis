@@ -1,6 +1,9 @@
 - brainfuck program 30
-mov .+ &30
-mov .. &31
+@ fuck.bf
+
+- stack 510
+- sp 420
+
 
 - program memory 512
 - mp
@@ -8,21 +11,155 @@ mov 0 &4
 - ip
 mov 0 &5
 
-
+LOOP:
 mov &5 #0
 add 30 #0
 
 cmp 0 &#0
 jeq END
+
+CHECK_PLUS:
 cmp .+ &#0
-jne SKIP_PLUS
-out .+
-SKIP_PLUS:
-cmp .. &#0
-jne SKIP_DOT
-out ..
-SKIP_DOT:
+jne CHECK_MINUS
+- out .+
+mov &4 #1
+add 512 #1
+add 1 &#1
+jmp NEXT
+
+CHECK_MINUS:
+cmp .- &#0
+jne CHECK_AR
+- out .+
+mov &4 #1
+add 512 #1
+add 1 &#1
+jmp NEXT
+
+CHECK_AR:
+cmp .> &#0
+jne CHECK_AL
+- out .>
+add 1 &4
+jmp NEXT
+
+CHECK_AL:
+cmp .< &#0
+jne CHECK_OB
+- out .<
+sub 1 &4
+jmp NEXT
+
+CHECK_OB:
+cmp .[ &#0
+jne CHECK_CB
+- out .[
+mov &4 #1
+add 512 #1
+cmp 0 &#1
+- if zero find matching bracket
+jne CB_CONT
+mov 0 #4
+
 add 1 &5
+CHECK_LOOP:
+mov &5 #0
+add 30 #0
+cmp 0 &#0
+jeq END
+
+cmp .] &#0
+jne NOT_CB
+
+cmp 0 #4
+jne NOT_MATCH
+
+jmp NEXT
+
+
+NOT_MATCH:
+sub 1 #4
+jmp CHECK_NEXT
+
+NOT_CB:
+cmp .[ &#0
+jne NOT_OB
+add 1 #4
+
+NOT_OB:
+CHECK_NEXT:
+add 1 &5
+jmp CHECK_LOOP
+
+
+- else push stack and continue
+CB_CONT:
+mov 510 #3
+sub &420 #3
+mov &4 &#3
+add 1 &420
+jmp NEXT
+
+CHECK_CB:
+cmp .] &#0
+jne CHECK_COM
+- out .]
+mov &4 #1
+add 512 #1
+cmp 0 &#1
+- if zero continue
+jeq NEXT
+- else jump back to matching
+mov 510 #3
+sub &420 #3
+mov #3 &4
+jmp NEXT
+
+
+CHECK_COM:
+cmp ., &#0
+jne CHECK_DOT
+- out .,
+jmp NEXT
+
+CHECK_DOT:
+cmp .. &#0
+jne UNKNOWN
+- out ..
+mov &4 #1
+add 512 #1
+out &#1
+jmp NEXT
+
+UNKNOWN:
+- ignore unknown chars
+jmp NEXT
+run print_unknown
+out &#1
+run print_nl
+jmp END
+
+NEXT:
+add 1 &5
+jmp LOOP
 
 END:
+out 10
 die
+
+
+print_unknown:
+out .u
+out .n
+out .k
+out .n
+out .o
+out .w
+out .n
+out .:
+out 32
+ret
+
+print_nl:
+out 10
+ret

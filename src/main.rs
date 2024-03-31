@@ -72,8 +72,6 @@ fn run_with_video(dis: &mut DIS) {
 }
 
 fn main() {
-    // get file from arg
-
     let mut video_support = false;
     let mut filepath: Option<String> = None;
     let mut args: VecDeque<String> = std::env::args().collect();

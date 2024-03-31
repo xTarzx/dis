@@ -150,6 +150,10 @@ impl DIS {
         registers.insert("1".into(), 0);
         registers.insert("2".into(), 0);
         registers.insert("3".into(), 0);
+        registers.insert("4".into(), 0);
+        registers.insert("5".into(), 0);
+        registers.insert("6".into(), 0);
+        registers.insert("7".into(), 0);
         registers.insert("e".into(), 0);
 
         DIS {
