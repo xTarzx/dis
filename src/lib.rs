@@ -20,6 +20,30 @@ enum ArgT {
 }
 
 impl ArgT {
+    fn type_as_str(typ: u8) -> String {
+        if typ == ArgT::NUM as u8 {
+            return "NUM".into();
+        }
+
+        if typ == ArgT::REG as u8 {
+            return "REG".into();
+        }
+
+        if typ == ArgT::MEM as u8 {
+            return "MEM".into();
+        }
+
+        if typ == ArgT::CHR as u8 {
+            return "CHR".into();
+        }
+
+        if typ == ArgT::LBL as u8 {
+            return "LBL".into();
+        }
+
+        unreachable!();
+    }
+
     pub fn parse(
         words: &mut VecDeque<&str>,
         arg_types: Vec<u8>,
@@ -37,7 +61,7 @@ impl ArgT {
             let r_k = arg[1..].to_string();
 
             if !registers.contains(&r_k) {
-                return Err(format!("Invalid register: {}", r_k));
+                return Err(format!("invalid register: {}", r_k));
             }
 
             return Ok(ArgT::REG(r_k));
@@ -49,14 +73,16 @@ impl ArgT {
                 let r_k = arg[2..].to_string();
 
                 if !registers.contains(&r_k) {
-                    return Err(format!("Invalid register: {}", r_k));
+                    return Err(format!("invalid register: {}", r_k));
                 }
 
                 mem_t = MemT::REG(r_k);
             } else {
                 let m_n = match arg[1..].parse::<usize>() {
                     Ok(n) => n,
-                    Err(_) => return Err(format!("Expected a number after '&': {}", arg)),
+                    Err(_) => {
+                        return Err(format!("expected a number after '&': {}", arg));
+                    }
                 };
 
                 if m_n >= MEM_N {
@@ -79,13 +105,25 @@ impl ArgT {
             // number
             let n = match arg.parse::<u16>() {
                 Ok(n) => n,
-                Err(_) => return Err(format!("Expected a number: {}", arg)),
+                Err(_) => {
+                    return Err(format!("Expected a number: {}", arg));
+                }
             };
 
             return Ok(ArgT::NUM(n));
         }
 
-        unreachable!("UNREACHABLE: {} {:?}", arg, arg_types)
+        let mut buf = String::new();
+        arg_types.iter().enumerate().for_each(|(i, t)| {
+            if i == 0 {
+                buf.push_str(&ArgT::type_as_str(*t));
+            } else {
+                buf.push_str(", ");
+                buf.push_str(&ArgT::type_as_str(*t));
+            }
+        });
+
+        Err(format!("invalid argument: `{}` (expected: {})", arg, buf))
     }
 }
 
@@ -141,6 +179,8 @@ pub struct DIS {
     pc: usize,
 
     die: bool,
+
+    source_path: Option<String>,
 }
 
 impl DIS {
@@ -170,13 +210,17 @@ impl DIS {
 
             cmp: 0,
             die: false,
+
+            source_path: None,
         }
     }
 
-    fn tokenize(&mut self, source_dir: &str, source: String) -> Result<Vec<Token>, String> {
+    fn tokenize(&mut self, source_dir: &str, source: String) -> Result<Vec<Token>, ()> {
         let mut program: Vec<Token> = Vec::new();
+        // TODO: report column. In the current state we will have to measure each parsed token.
+        // Another solution is to have a proper lexer.
 
-        for line in source.lines() {
+        for (line_idx, line) in source.lines().enumerate() {
             if line.starts_with("-") {
                 continue;
             }
@@ -209,7 +253,8 @@ impl DIS {
             match word {
                 "mov" => {
                     if words.len() != 2 {
-                        return Err(format!("Invalid number of arguments for 'mov': {}", line));
+                        eprintln!("Invalid number of arguments for 'mov': {}", line);
+                        return Err(());
                     }
 
                     let arg1 = ArgT::parse(
@@ -222,18 +267,33 @@ impl DIS {
                         ]
                         .into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
                     let arg2 = ArgT::parse(
                         &mut words,
                         [ArgT::REG as u8, ArgT::MEM as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::MOV(arg1, arg2);
                 }
                 "add" => {
                     if words.len() != 2 {
-                        return Err(format!("Invalid number of arguments for add: {}", line));
+                        eprintln!("Invalid number of arguments for add: {}", line);
+                        return Err(());
                     }
 
                     let arg1 = ArgT::parse(
@@ -246,19 +306,34 @@ impl DIS {
                         ]
                         .into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     let arg2 = ArgT::parse(
                         &mut words,
                         [ArgT::REG as u8, ArgT::MEM as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::ADD(arg1, arg2);
                 }
                 "sub" => {
                     if words.len() != 2 {
-                        return Err(format!("Invalid number of arguments for sub: {}", line));
+                        eprintln!("Invalid number of arguments for sub: {}", line);
+                        return Err(());
                     }
 
                     let arg1 = ArgT::parse(
@@ -271,19 +346,34 @@ impl DIS {
                         ]
                         .into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     let arg2 = ArgT::parse(
                         &mut words,
                         [ArgT::REG as u8, ArgT::MEM as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::SUB(arg1, arg2);
                 }
                 "cmp" => {
                     if words.len() != 2 {
-                        return Err(format!("Invalid number of arguments for cmp: {}", line));
+                        eprintln!("Invalid number of arguments for cmp: {}", line);
+                        return Err(());
                     }
 
                     let arg1 = ArgT::parse(
@@ -296,112 +386,177 @@ impl DIS {
                         ]
                         .into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     let arg2 = ArgT::parse(
                         &mut words,
                         [ArgT::REG as u8, ArgT::MEM as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::CMP(arg1, arg2);
                 }
                 "jlt" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for jlt: {}", line));
+                        eprintln!("Invalid number of arguments for jlt: {}", line);
+                        return Err(());
                     }
 
                     let arg = ArgT::parse(
                         &mut words,
                         [ArgT::LBL as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::JLT(arg);
                 }
 
                 "jgt" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for jgt: {}", line));
+                        eprintln!("Invalid number of arguments for jgt: {}", line);
+                        return Err(());
                     }
 
                     let arg = ArgT::parse(
                         &mut words,
                         [ArgT::LBL as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::JGT(arg);
                 }
                 "jeq" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for jeq: {}", line));
+                        eprintln!("Invalid number of arguments for jeq: {}", line);
+                        return Err(());
                     }
 
                     let arg = ArgT::parse(
                         &mut words,
                         [ArgT::LBL as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::JEQ(arg);
                 }
 
                 "jne" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for jne: {}", line));
+                        eprintln!("Invalid number of arguments for jne: {}", line);
+                        return Err(());
                     }
 
                     let arg = ArgT::parse(
                         &mut words,
                         [ArgT::LBL as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::JNE(arg);
                 }
 
                 "jmp" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for jmp: {}", line));
+                        eprintln!("Invalid number of arguments for jmp: {}", line);
+                        return Err(());
                     }
 
                     let arg = ArgT::parse(
                         &mut words,
                         [ArgT::LBL as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::JMP(arg);
                 }
                 "run" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for run: {}", line));
+                        eprintln!("Invalid number of arguments for run: {}", line);
+                        return Err(());
                     }
                     let arg = ArgT::parse(
                         &mut words,
                         [ArgT::LBL as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
                     token.itype = IType::RUN(arg);
                 }
                 "ret" => {
                     if words.len() != 0 {
-                        return Err(format!("Invalid number of arguments for ret: {}", line));
+                        eprintln!("Invalid number of arguments for ret: {}", line);
+                        return Err(());
                     }
 
                     token.itype = IType::RET;
                 }
                 "die" => {
                     if words.len() != 0 {
-                        return Err(format!("Invalid number of arguments for die: {}", line));
+                        eprintln!("Invalid number of arguments for die: {}", line);
+                        return Err(());
                     }
 
                     token.itype = IType::DIE;
                 }
                 "out" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for out: {}", line));
+                        eprintln!("Invalid number of arguments for out: {}", line);
+                        return Err(());
                     }
 
                     let arg = ArgT::parse(
@@ -414,13 +569,21 @@ impl DIS {
                         ]
                         .into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::OUT(arg);
                 }
                 "dbg" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for dbg: {}", line));
+                        eprintln!("Invalid number of arguments for dbg: {}", line);
+                        return Err(());
                     }
 
                     let arg = ArgT::parse(
@@ -433,13 +596,21 @@ impl DIS {
                         ]
                         .into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::DBG(arg);
                 }
                 "prt" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for prt: {}", line));
+                        eprintln!("Invalid number of arguments for prt: {}", line);
+                        return Err(());
                     }
 
                     let arg = ArgT::parse(
@@ -452,14 +623,22 @@ impl DIS {
                         ]
                         .into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::PRT(arg);
                 }
 
                 "@" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for @: {}", line));
+                        eprintln!("Invalid number of arguments for @: {}", line);
+                        return Err(());
                     }
 
                     let include_path =
@@ -468,7 +647,8 @@ impl DIS {
                     let include_source = std::fs::read_to_string(&include_path);
 
                     if include_source.is_err() {
-                        return Err(format!("Failed to read file: {}", include_path));
+                        eprintln!("Failed to read file: {}", include_path);
+                        return Err(());
                     }
                     let include_source = include_source.unwrap();
 
@@ -480,49 +660,78 @@ impl DIS {
 
                 "rdn" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for rdn: {}", line));
+                        eprintln!("Invalid number of arguments for rdn: {}", line);
+                        return Err(());
                     }
 
                     let arg = ArgT::parse(
                         &mut words,
                         [ArgT::REG as u8, ArgT::MEM as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::RDN(arg);
                 }
 
                 "rdc" => {
                     if words.len() != 1 {
-                        return Err(format!("Invalid number of arguments for rdc: {}", line));
+                        eprintln!("Invalid number of arguments for rdc: {}", line);
+                        return Err(());
                     }
 
                     let arg = ArgT::parse(
                         &mut words,
                         [ArgT::REG as u8, ArgT::MEM as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     token.itype = IType::RDC(arg);
                 }
 
                 "rln" => {
                     if words.len() != 1 && words.len() != 2 {
-                        return Err(format!("Invalid number of arguments for rln: {}", line));
+                        eprintln!("Invalid number of arguments for rln: {}", line);
+                        return Err(());
                     }
 
                     let arg1 = ArgT::parse(
                         &mut words,
                         [ArgT::MEM as u8].into(),
                         self.registers.keys().cloned().collect(),
-                    )?;
+                    )
+                    .map_err(|e| {
+                        eprintln!(
+                            "{path}:{line}: {e}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                    })?;
 
                     let arg2 = if words.len() == 1 {
-                        Some(ArgT::parse(
-                            &mut words,
-                            [ArgT::NUM as u8, ArgT::REG as u8, ArgT::MEM as u8].into(),
-                            self.registers.keys().cloned().collect(),
-                        )?)
+                        Some(
+                            ArgT::parse(
+                                &mut words,
+                                [ArgT::NUM as u8, ArgT::REG as u8, ArgT::MEM as u8].into(),
+                                self.registers.keys().cloned().collect(),
+                            )
+                            .map_err(|e| {
+                                eprintln!("{e}");
+                            })?,
+                        )
                     } else {
                         None
                     };
@@ -530,7 +739,16 @@ impl DIS {
                     token.itype = IType::RLN(arg1, arg2);
                 }
 
-                _ => return Err(format!("Unknown instruction: {}", word)),
+                _ => {
+                    return {
+                        eprintln!(
+                            "{path}:{line}: unknown instruction: {word}",
+                            path = self.source_path.as_ref().unwrap(),
+                            line = line_idx,
+                        );
+                        Err(())
+                    }
+                }
             }
 
             program.push(token);
@@ -594,26 +812,24 @@ impl DIS {
             .unwrap();
 
         if source.is_err() {
-            println!("Error: Failed to read file: {}", filename);
+            eprintln!("Error: Failed to read file: {}", filename);
             return Err(());
         }
         let source = source.unwrap();
 
-        match self.tokenize(source_dir, source) {
-            Ok(program) => {
-                self.program = program;
+        self.source_path = Some(filename.to_string());
+        if let Ok(program) = self.tokenize(source_dir, source) {
+            self.program = program;
 
-                if let Ok(_) = self.resolve_labels() {
-                    return Ok(());
-                }
+            if let Ok(_) = self.resolve_labels() {
+                return Ok(());
+            }
 
-                self.program.clear();
-                println!("Error: Failed to resolve labels!");
-            }
-            Err(e) => {
-                println!("Error: {}", e);
-            }
+            self.program.clear();
+            eprintln!("Error: Failed to resolve labels!");
         }
+
+        self.source_path = None;
         return Err(());
     }
 
