@@ -174,7 +174,7 @@ impl Statement {
                 }
                 "out" => {
                     if tokens.len() < 1 {
-                        eprintln!("{loc}: expected one operands for `out`", loc = loc);
+                        eprintln!("{loc}: expected one operand for `out`", loc = loc);
                         return Err(());
                     }
 
