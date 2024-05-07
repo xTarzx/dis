@@ -5,9 +5,22 @@ use crate::Result;
 pub enum Op {
     MOV(Token),
     ADD(Token),
+    SUB(Token),
     CMP(Token),
+    JLT(Token),
+    JGT(Token),
+    JEQ(Token),
     JNE(Token),
+    JMP(Token),
+    RUN(Token),
+    RET(Token),
+    DIE(Token),
     OUT(Token),
+    PRT(Token),
+    INC(Token),
+    RDN(Token),
+    RDC(Token),
+    RLN(Token),
     NOP,
 }
 
@@ -119,6 +132,47 @@ impl Statement {
 
                     return Ok(Some(statement));
                 }
+                "sub" => {
+                    if tokens.len() < 2 {
+                        eprintln!("{loc}: expected two operands for `sub`", loc = loc);
+                        return Err(());
+                    }
+
+                    let op1 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Number { .. } => Ok(op),
+                            Token::Register { .. } => Ok(op),
+                            Token::Memory { .. } => Ok(op),
+                            Token::Char { .. } => Ok(op),
+                            other => {
+                                eprintln!("{loc}: expected number, register, memory or char, found `{other}`", loc = other.loc());
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    let op2 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Register { .. } => Ok(op),
+                            Token::Memory { .. } => Ok(op),
+                            other => {
+                                eprintln!(
+                                    "{loc}: expected register or memory, found `{other}`",
+                                    loc = other.loc()
+                                );
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    statement.op = Op::SUB(token);
+                    statement.body.push(op1);
+                    statement.body.push(op2);
+
+                    return Ok(Some(statement));
+                }
                 "cmp" => {
                     if tokens.len() < 2 {
                         eprintln!("{loc}: expected two operands for `cmp`", loc = loc);
@@ -159,6 +213,59 @@ impl Statement {
 
                     return Ok(Some(statement));
                 }
+                "jlt" => {
+                    todo!()
+                }
+                "jgt" => {
+                    if tokens.len() < 1 {
+                        eprintln!("{loc}: expected one operand for `jgt`", loc = loc);
+                        return Err(());
+                    }
+
+                    let op1 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Identifier { .. } => Ok(op),
+                            other => {
+                                eprintln!(
+                                    "{loc}: expected label identifier, found `{other}`",
+                                    loc = other.loc()
+                                );
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    statement.op = Op::JGT(token);
+                    statement.body.push(op1);
+
+                    return Ok(Some(statement));
+                }
+                "jeq" => {
+                    if tokens.len() < 1 {
+                        eprintln!("{loc}: expected one operand for `jeq`", loc = loc);
+                        return Err(());
+                    }
+
+                    let op1 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Identifier { .. } => Ok(op),
+                            other => {
+                                eprintln!(
+                                    "{loc}: expected label identifier, found `{other}`",
+                                    loc = other.loc()
+                                );
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    statement.op = Op::JEQ(token);
+                    statement.body.push(op1);
+
+                    return Ok(Some(statement));
+                }
                 "jne" => {
                     if tokens.len() < 1 {
                         eprintln!("{loc}: expected one operand for `jne`", loc = loc);
@@ -184,6 +291,40 @@ impl Statement {
 
                     return Ok(Some(statement));
                 }
+                "jmp" => {
+                    if tokens.len() < 1 {
+                        eprintln!("{loc}: expected one operand for `jmp`", loc = loc);
+                        return Err(());
+                    }
+
+                    let op1 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Identifier { .. } => Ok(op),
+                            other => {
+                                eprintln!(
+                                    "{loc}: expected label identifier, found `{other}`",
+                                    loc = other.loc()
+                                );
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    statement.op = Op::JMP(token);
+                    statement.body.push(op1);
+
+                    return Ok(Some(statement));
+                }
+                "run" => {
+                    todo!()
+                }
+                "ret" => {
+                    todo!()
+                }
+                "die" => {
+                    todo!()
+                }
                 "out" => {
                     if tokens.len() < 1 {
                         eprintln!("{loc}: expected one operand for `out`", loc = loc);
@@ -208,6 +349,68 @@ impl Statement {
                     statement.body.push(op1);
 
                     return Ok(Some(statement));
+                }
+                "prt" => {
+                    if tokens.len() < 1 {
+                        eprintln!("{loc}: expected one operand for `prt`", loc = loc);
+                        return Err(());
+                    }
+
+                    let op1 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Number { .. } => Ok(op),
+                            Token::Register { .. } => Ok(op),
+                            Token::Memory { .. } => Ok(op),
+                            Token::Char { .. } => Ok(op),
+                            other => {
+                                eprintln!("{loc}: expected number, register, memory or char, found `{other}`", loc = other.loc());
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    statement.op = Op::PRT(token);
+                    statement.body.push(op1);
+
+                    return Ok(Some(statement));
+                }
+                "@" => {
+                    todo!()
+                }
+                "rdn" => {
+                    todo!()
+                }
+
+                "rdc" => {
+                    if tokens.len() < 1 {
+                        eprintln!("{loc}: expected one operands for `rdc`", loc = loc);
+                        return Err(());
+                    }
+
+                    let op1 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Register { .. } => Ok(op),
+                            Token::Memory { .. } => Ok(op),
+                            other => {
+                                eprintln!(
+                                    "{loc}: expected register or memory, found `{other}`",
+                                    loc = other.loc()
+                                );
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    statement.op = Op::RDC(token);
+                    statement.body.push(op1);
+
+                    return Ok(Some(statement));
+                }
+
+                "rln" => {
+                    todo!()
                 }
 
                 _ => {

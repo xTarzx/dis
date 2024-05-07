@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::Write;
 
 use crate::lexer::{Lexer, Token};
 use crate::statement::{Op, Statement};
@@ -28,6 +29,7 @@ impl DIS {
         let mut registers = HashMap::new();
         for i in 0..8 {
             registers.insert(i.to_string(), 0);
+            registers.insert("e".to_string(), 0);
         }
 
         DIS {
@@ -135,7 +137,14 @@ impl DIS {
                 Ok(())
             }
             Token::Memory { value: mem_id, .. } => {
-                let mem_addr = mem_id.parse::<usize>().unwrap();
+                let mem_addr = {
+                    if mem_id.starts_with("#") {
+                        let reg_val = self.registers.get(&mem_id[1..].to_string()).unwrap();
+                        *reg_val as usize
+                    } else {
+                        mem_id.parse::<usize>().unwrap()
+                    }
+                };
                 let mem = self.memory.get_mut(mem_addr).unwrap();
                 *mem = value;
                 Ok(())
@@ -181,6 +190,15 @@ impl DIS {
 
                 self.set_value(dst, val + dst_val).unwrap();
             }
+            Op::SUB(_) => {
+                let src = &statement.body[0];
+                let dst = &statement.body[1];
+
+                let val = self.get_value(src).unwrap();
+                let dst_val = self.get_value(dst).unwrap();
+
+                self.set_value(dst, dst_val - val).unwrap();
+            }
             Op::CMP(_) => {
                 let src = &statement.body[0];
                 let dst = &statement.body[1];
@@ -202,6 +220,38 @@ impl DIS {
                     self.cmp |= CMP::GT as u8;
                 }
             }
+            Op::JLT(_) => {
+                todo!()
+            }
+            Op::JGT(_) => {
+                let target_token = &statement.body[0];
+
+                let target_label = match target_token {
+                    Token::Identifier { value, .. } => value,
+                    _ => unreachable!(),
+                };
+
+                let target_idx = self.label_map.get(target_label).unwrap();
+
+                if self.cmp & CMP::GT as u8 != 0 {
+                    self.pc = *target_idx - 1;
+                }
+            }
+            Op::JEQ(_) => {
+                let target_token = &statement.body[0];
+
+                let target_label = match target_token {
+                    Token::Identifier { value, .. } => value,
+                    _ => unreachable!(),
+                };
+
+                let target_idx = self.label_map.get(target_label).unwrap();
+
+                if self.cmp & CMP::EQ as u8 != 0 {
+                    self.pc = *target_idx - 1;
+                }
+            }
+
             Op::JNE(_) => {
                 let target_token = &statement.body[0];
 
@@ -216,11 +266,73 @@ impl DIS {
                     self.pc = *target_idx - 1;
                 }
             }
+
+            Op::JMP(_) => {
+                let target_token = &statement.body[0];
+
+                let target_label = match target_token {
+                    Token::Identifier { value, .. } => value,
+                    _ => unreachable!(),
+                };
+
+                let target_idx = self.label_map.get(target_label).unwrap();
+
+                self.pc = *target_idx - 1;
+            }
+            Op::RUN(_) => {
+                todo!()
+            }
+
+            Op::RET(_) => {
+                todo!()
+            }
+
+            Op::DIE(_) => {
+                todo!()
+            }
+
             Op::OUT(_) => {
                 let src = &statement.body[0];
                 let val = self.get_value(src).unwrap();
                 print!("{}", val as u8 as char);
+                std::io::stdout().flush().unwrap();
             }
+
+            Op::PRT(_) => {
+                let src = &statement.body[0];
+                let val = self.get_value(src).unwrap();
+                print!("{}", val);
+                std::io::stdout().flush().unwrap();
+            }
+
+            Op::INC(_) => {
+                todo!()
+            }
+
+            Op::RDN(_) => {
+                todo!()
+            }
+
+            Op::RDC(_) => {
+                let dst = &statement.body[0];
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).unwrap();
+                let val = input.trim().chars().nth(0);
+
+                if val.is_none() {
+                    self.registers.insert("e".to_string(), 1);
+                } else {
+                    self.registers.insert("e".to_string(), 0);
+
+                    let val = val.unwrap() as u16;
+                    self.set_value(dst, val).unwrap();
+                }
+            }
+
+            Op::RLN(_) => {
+                todo!()
+            }
+
             Op::NOP => {
                 todo!()
             }
