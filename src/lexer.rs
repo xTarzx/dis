@@ -1,3 +1,4 @@
+use std::fmt;
 use std::fs;
 
 const KEYWORDS: [&str; 18] = [
@@ -5,10 +6,17 @@ const KEYWORDS: [&str; 18] = [
     "prt", "@", "rdn", "rdc", "rln",
 ];
 
-#[derive(Debug)]
-struct Location {
+#[derive(Debug, Clone)]
+pub struct Location {
+    file: String,
     line: usize,
     column: usize,
+}
+
+impl fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:{}:{}", self.file, self.line, self.column)
+    }
 }
 
 #[derive(Debug)]
@@ -56,7 +64,8 @@ impl Lexer {
         }
 
         Location {
-            line: line,
+            file: self.source_path.clone(),
+            line: line + 1,
             column: column,
         }
     }

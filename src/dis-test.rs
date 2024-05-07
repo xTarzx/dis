@@ -5,5 +5,12 @@ use dis::DIS;
 
 fn main() {
     let mut dis = DIS::new();
-    dis.load("examples/simple.dis");
+    match dis.load("examples/simple.dis") {
+        Ok(_) => {
+            println!("Loaded program:");
+        }
+        Err(_) => {
+            eprintln!("Failed to load program");
+        }
+    };
 }
