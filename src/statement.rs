@@ -3,7 +3,7 @@ use crate::Result;
 
 #[derive(Debug)]
 pub struct Statement {
-    label: Option<Token>,
+    pub label: Option<Token>,
     body: Vec<Token>,
 }
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::lexer::Lexer;
+use crate::lexer::{Lexer, Token};
 use crate::statement::Statement;
 use crate::Result;
 
@@ -40,24 +40,29 @@ impl DIS {
     }
 
     fn index_labels(&mut self) -> Result<()> {
-        todo!()
-        // for (idx, token) in self.program.iter().enumerate() {
-        //     if let Token::Label { value, loc } = token {
-        //         if self.label_map.contains_key(value) {
-        //             eprintln!("{loc}: duplicate label `{label}`", label = value);
+        for (idx, statement) in self.program.iter().enumerate() {
+            if let Some(Token::Label { value, loc }) = &statement.label {
+                if self.label_map.contains_key(value) {
+                    eprintln!("{loc}: duplicate label `{value}`");
 
-        //             let first_loc = match &self.program[self.label_map[value]] {
-        //                 Token::Label { loc, .. } => loc,
-        //                 _ => unreachable!(),
-        //             };
+                    let first_loc = match &self.program[self.label_map[value]] {
+                        Statement {
+                            label: Some(Token::Label { loc, .. }),
+                            ..
+                        } => loc,
+                        _ => unreachable!(),
+                    };
 
-        //             eprintln!("first defined here: {first_loc}");
-        //             return Err(());
-        //         }
-        //         self.label_map.insert(value.clone(), idx);
-        //     }
-        // }
-        // Ok(())
+                    eprintln!("first defined here: {first_loc}");
+
+                    return Err(());
+                }
+
+                self.label_map.insert(value.clone(), idx);
+            }
+        }
+
+        Ok(())
     }
 
     pub fn load<T>(&mut self, source_path: T) -> Result<()>
@@ -77,7 +82,9 @@ impl DIS {
             }
         }
 
-        dbg!(&self.program);
+        self.index_labels()?;
+
+        // dbg!(&self.program);
 
         Ok(())
     }
