@@ -1,10 +1,21 @@
 use crate::lexer::Token;
 use crate::Result;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum Op {
+    MOV(Token),
+    ADD(Token),
+    CMP(Token),
+    JNE(Token),
+    OUT(Token),
+    NOP,
+}
+
+#[derive(Debug, Clone)]
 pub struct Statement {
     pub label: Option<Token>,
-    body: Vec<Token>,
+    pub op: Op,
+    pub body: Vec<Token>,
 }
 
 impl Statement {
@@ -15,12 +26,13 @@ impl Statement {
 
         let mut statement = Self {
             label: None,
+            op: Op::NOP,
             body: Vec::new(),
         };
 
         let mut token = tokens.remove(0);
 
-        if let Token::Label { value, loc } = &token {
+        if let Token::Label { .. } = &token {
             statement.label = Some(token.clone());
             token = tokens.remove(0);
         }
@@ -61,7 +73,7 @@ impl Statement {
                         }
                     }?;
 
-                    statement.body.push(token);
+                    statement.op = Op::MOV(token);
                     statement.body.push(op1);
                     statement.body.push(op2);
 
@@ -101,7 +113,7 @@ impl Statement {
                         }
                     }?;
 
-                    statement.body.push(token);
+                    statement.op = Op::ADD(token);
                     statement.body.push(op1);
                     statement.body.push(op2);
 
@@ -141,7 +153,7 @@ impl Statement {
                         }
                     }?;
 
-                    statement.body.push(token);
+                    statement.op = Op::CMP(token);
                     statement.body.push(op1);
                     statement.body.push(op2);
 
@@ -167,7 +179,7 @@ impl Statement {
                         }
                     }?;
 
-                    statement.body.push(token);
+                    statement.op = Op::JNE(token);
                     statement.body.push(op1);
 
                     return Ok(Some(statement));
@@ -192,7 +204,7 @@ impl Statement {
                         }
                     }?;
 
-                    statement.body.push(token);
+                    statement.op = Op::OUT(token);
                     statement.body.push(op1);
 
                     return Ok(Some(statement));

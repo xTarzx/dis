@@ -25,7 +25,7 @@ pub enum Token {
     Keyword { value: String, loc: Location },
     Label { value: String, loc: Location },
     Char { value: char, loc: Location },
-    Number { value: i32, loc: Location },
+    Number { value: u16, loc: Location },
     Register { value: String, loc: Location },
     Memory { value: String, loc: Location },
     Identifier { value: String, loc: Location },
