@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fs;
-type Result<T> = std::result::Result<T, ()>;
+
+use dis::Result;
 
 const KEYWORDS: [&str; 19] = [
     "mov", "add", "sub", "cmp", "jmp", "jlt", "jgt", "jeq", "jne", "run", "ret", "die", "out",

@@ -4,8 +4,6 @@ mod statement;
 
 use dis::DIS;
 
-type Result<T> = std::result::Result<T, ()>;
-
 fn main() {
     let mut dis = DIS::new();
     match dis.load("examples/debug.dis") {

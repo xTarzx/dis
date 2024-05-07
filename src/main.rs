@@ -1,7 +1,5 @@
 use std::{collections::VecDeque, process::ExitCode, time::Duration};
 
-type Result<T> = std::result::Result<T, ()>;
-
 mod dis;
 mod lexer;
 mod statement;

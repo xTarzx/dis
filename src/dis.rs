@@ -3,7 +3,7 @@ use std::io::Write;
 
 use crate::lexer::{Lexer, Token};
 use crate::statement::{Op, Statement};
-use crate::Result;
+use dis::Result;
 
 const MEM_SIZE: usize = 4096;
 
