@@ -16,6 +16,7 @@ enum CMP {
 pub struct DIS {
     registers: HashMap<String, u16>,
     memory: [u16; MEM_SIZE],
+    return_stack: Vec<usize>,
     label_map: HashMap<String, usize>,
     program: Vec<Statement>,
     pc: usize,
@@ -35,6 +36,7 @@ impl DIS {
         DIS {
             registers,
             memory: [0; MEM_SIZE],
+            return_stack: Vec::new(),
             label_map: HashMap::new(),
             program: Vec::new(),
             pc: 0,
@@ -221,7 +223,18 @@ impl DIS {
                 }
             }
             Op::JLT(_) => {
-                todo!()
+                let target_token = &statement.body[0];
+
+                let target_label = match target_token {
+                    Token::Identifier { value, .. } => value,
+                    _ => unreachable!(),
+                };
+
+                let target_idx = self.label_map.get(target_label).unwrap();
+
+                if self.cmp & CMP::LT as u8 != 0 {
+                    self.pc = *target_idx - 1;
+                }
             }
             Op::JGT(_) => {
                 let target_token = &statement.body[0];
@@ -280,15 +293,27 @@ impl DIS {
                 self.pc = *target_idx - 1;
             }
             Op::RUN(_) => {
-                todo!()
+                let target_token = &statement.body[0];
+
+                let target_label = match target_token {
+                    Token::Identifier { value, .. } => value,
+                    _ => unreachable!(),
+                };
+
+                let target_idx = self.label_map.get(target_label).unwrap();
+
+                self.return_stack.push(self.pc);
+
+                self.pc = *target_idx - 1;
             }
 
             Op::RET(_) => {
-                todo!()
+                let return_idx = self.return_stack.pop().unwrap();
+                self.pc = return_idx;
             }
 
             Op::DIE(_) => {
-                todo!()
+                self.die = true;
             }
 
             Op::OUT(_) => {

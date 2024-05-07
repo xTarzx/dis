@@ -8,7 +8,7 @@ type Result<T> = std::result::Result<T, ()>;
 
 fn main() {
     let mut dis = DIS::new();
-    match dis.load("examples/rln.dis") {
+    match dis.load("examples/fizzbuzz.dis") {
         Ok(_) => {
             println!("Loaded program successfully");
             dis.run();

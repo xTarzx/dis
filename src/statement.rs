@@ -214,7 +214,29 @@ impl Statement {
                     return Ok(Some(statement));
                 }
                 "jlt" => {
-                    todo!()
+                    if tokens.len() < 1 {
+                        eprintln!("{loc}: expected one operand for `jlt`", loc = loc);
+                        return Err(());
+                    }
+
+                    let op1 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Identifier { .. } => Ok(op),
+                            other => {
+                                eprintln!(
+                                    "{loc}: expected label identifier, found `{other}`",
+                                    loc = other.loc()
+                                );
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    statement.op = Op::JLT(token);
+                    statement.body.push(op1);
+
+                    return Ok(Some(statement));
                 }
                 "jgt" => {
                     if tokens.len() < 1 {
@@ -317,13 +339,37 @@ impl Statement {
                     return Ok(Some(statement));
                 }
                 "run" => {
-                    todo!()
+                    if tokens.len() < 1 {
+                        eprintln!("{loc}: expected one operand for `run`", loc = loc);
+                        return Err(());
+                    }
+
+                    let op1 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Identifier { .. } => Ok(op),
+                            other => {
+                                eprintln!(
+                                    "{loc}: expected label identifier, found `{other}`",
+                                    loc = other.loc()
+                                );
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    statement.op = Op::RUN(token);
+                    statement.body.push(op1);
+
+                    return Ok(Some(statement));
                 }
                 "ret" => {
-                    todo!()
+                    statement.op = Op::RET(token);
+                    return Ok(Some(statement));
                 }
                 "die" => {
-                    todo!()
+                    statement.op = Op::DIE(token);
+                    return Ok(Some(statement));
                 }
                 "out" => {
                     if tokens.len() < 1 {

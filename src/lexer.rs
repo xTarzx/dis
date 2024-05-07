@@ -148,6 +148,17 @@ impl Lexer {
         self.strip_whitespace();
         let pos = self.pos;
         if let Some(word) = self.peek_word() {
+            if word.starts_with("-") {
+                while let Some(c) = self.source.chars().nth(self.pos) {
+                    if c == '\n' {
+                        break;
+                    }
+                    self.advance(1);
+                }
+
+                return self.next_token();
+            }
+
             let loc = self.location(pos);
             self.advance(word.len());
 
