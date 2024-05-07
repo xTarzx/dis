@@ -210,9 +210,9 @@
     - outputs '49'
     ```
 
--   rln: `rln <MEM> [NUM | REG | MEM]`
+-   rln: `rln <MEM> <NUM | REG | MEM>`
     read line to address and return read count on #3<br>
-    optional arg: max characters to read
+    arg: max characters to read (set to zero to read until newline)
 
     ```
     rln &0
