@@ -1,5 +1,6 @@
 use std::fmt;
 use std::fs;
+type Result<T> = std::result::Result<T, ()>;
 
 const KEYWORDS: [&str; 18] = [
     "mov", "add", "sub", "cmp", "jmp", "jlt", "jgt", "jeq", "jne", "run", "ret", "die", "out",
@@ -19,7 +20,7 @@ impl fmt::Display for Location {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Token {
     Keyword { value: String, loc: Location },
     Label { value: String, loc: Location },
@@ -28,6 +29,46 @@ pub enum Token {
     Register { value: String, loc: Location },
     Memory { value: String, loc: Location },
     Identifier { value: String, loc: Location },
+}
+
+impl Token {
+    pub fn loc(&self) -> &Location {
+        match self {
+            Token::Keyword { loc, .. } => loc,
+            Token::Label { loc, .. } => loc,
+            Token::Char { loc, .. } => loc,
+            Token::Number { loc, .. } => loc,
+            Token::Register { loc, .. } => loc,
+            Token::Memory { loc, .. } => loc,
+            Token::Identifier { loc, .. } => loc,
+        }
+    }
+
+    pub fn typ(&self) -> u8 {
+        match self {
+            Token::Keyword { .. } => 0,
+            Token::Label { .. } => 1,
+            Token::Char { .. } => 2,
+            Token::Number { .. } => 3,
+            Token::Register { .. } => 4,
+            Token::Memory { .. } => 5,
+            Token::Identifier { .. } => 6,
+        }
+    }
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Token::Keyword { value, .. } => write!(f, "Keyword({})", value),
+            Token::Label { value, .. } => write!(f, "Label({})", value),
+            Token::Char { value, .. } => write!(f, "Char({})", value),
+            Token::Number { value, .. } => write!(f, "Number({})", value),
+            Token::Register { value, .. } => write!(f, "Register({})", value),
+            Token::Memory { value, .. } => write!(f, "Memory({})", value),
+            Token::Identifier { value, .. } => write!(f, "Identifier({})", value),
+        }
+    }
 }
 
 pub struct Lexer {
@@ -66,7 +107,7 @@ impl Lexer {
         Location {
             file: self.source_path.clone(),
             line: line + 1,
-            column: column,
+            column: column + 1,
         }
     }
 
@@ -158,5 +199,18 @@ impl Lexer {
         };
 
         None
+    }
+
+    pub fn tokens(&mut self) -> Result<Vec<Token>> {
+        let mut tokens = Vec::new();
+        while let Some(token) = self.next_token() {
+            tokens.push(token);
+        }
+
+        if tokens.is_empty() {
+            return Err(());
+        }
+
+        Ok(tokens)
     }
 }
