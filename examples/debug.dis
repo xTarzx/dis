@@ -1,0 +1,6 @@
+dbg 0
+dbg #0
+dbg &1
+mov 2 &1
+mov 1 #0
+dbg &#0

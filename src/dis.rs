@@ -133,6 +133,15 @@ impl DIS {
         Ok(())
     }
 
+    fn mem_addr_from_id(&self, mem_id: &str) -> usize {
+        if mem_id.starts_with("#") {
+            let reg_val = self.registers.get(&mem_id[1..].to_string()).unwrap();
+            *reg_val as usize
+        } else {
+            mem_id.parse::<usize>().unwrap()
+        }
+    }
+
     fn get_value(&self, src_token: &Token) -> Result<u16> {
         match src_token {
             Token::Number { value, .. } => Ok(*value),
@@ -141,14 +150,7 @@ impl DIS {
                 Ok(*value)
             }
             Token::Memory { value: mem_id, .. } => {
-                let mem_addr = {
-                    if mem_id.starts_with("#") {
-                        let reg_val = self.registers.get(&mem_id[1..].to_string()).unwrap();
-                        *reg_val as usize
-                    } else {
-                        mem_id.parse::<usize>().unwrap()
-                    }
-                };
+                let mem_addr = self.mem_addr_from_id(mem_id);
                 let value = self.memory.get(mem_addr).unwrap();
                 Ok(*value)
             }
@@ -171,14 +173,7 @@ impl DIS {
                 Ok(())
             }
             Token::Memory { value: mem_id, .. } => {
-                let mem_addr = {
-                    if mem_id.starts_with("#") {
-                        let reg_val = self.registers.get(&mem_id[1..].to_string()).unwrap();
-                        *reg_val as usize
-                    } else {
-                        mem_id.parse::<usize>().unwrap()
-                    }
-                };
+                let mem_addr = self.mem_addr_from_id(mem_id);
                 let mem = self.memory.get_mut(mem_addr).unwrap();
                 *mem = value;
                 Ok(())
@@ -360,6 +355,23 @@ impl DIS {
                 let val = self.get_value(src).unwrap();
                 print!("{}", val);
                 std::io::stdout().flush().unwrap();
+            }
+
+            Op::DBG(_) => {
+                let src = &statement.body[0];
+                let val = self.get_value(src).unwrap();
+                match src {
+                    Token::Memory { value, .. } => {
+                        if value.starts_with("#") {
+                            let mem_addr = self.mem_addr_from_id(value);
+                            println!("DBG {src} (&{mem_addr}): {val}");
+                        } else {
+                            println!("DBG {src}: {val}");
+                        }
+                    }
+
+                    _ => println!("DBG {src}: {val}"),
+                }
             }
 
             Op::INC(_) => {

@@ -2,9 +2,9 @@ use std::fmt;
 use std::fs;
 type Result<T> = std::result::Result<T, ()>;
 
-const KEYWORDS: [&str; 18] = [
+const KEYWORDS: [&str; 19] = [
     "mov", "add", "sub", "cmp", "jmp", "jlt", "jgt", "jeq", "jne", "run", "ret", "die", "out",
-    "prt", "@", "rdn", "rdc", "rln",
+    "prt", "@", "rdn", "rdc", "rln", "dbg",
 ];
 
 #[derive(Debug, Clone)]

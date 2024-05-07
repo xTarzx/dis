@@ -17,6 +17,7 @@ pub enum Op {
     DIE(Token),
     OUT(Token),
     PRT(Token),
+    DBG(Token),
     INC(Token),
     RDN(Token),
     RDC(Token),
@@ -417,6 +418,31 @@ impl Statement {
                     }?;
 
                     statement.op = Op::PRT(token);
+                    statement.body.push(op1);
+
+                    return Ok(Some(statement));
+                }
+                "dbg" => {
+                    if tokens.len() < 1 {
+                        eprintln!("{loc}: expected one operand for `dbg`", loc = loc);
+                        return Err(());
+                    }
+
+                    let op1 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Number { .. } => Ok(op),
+                            Token::Register { .. } => Ok(op),
+                            Token::Memory { .. } => Ok(op),
+                            Token::Char { .. } => Ok(op),
+                            other => {
+                                eprintln!("{loc}: expected number, register, memory or char, found `{other}`", loc = other.loc());
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    statement.op = Op::DBG(token);
                     statement.body.push(op1);
 
                     return Ok(Some(statement));
