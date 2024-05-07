@@ -77,26 +77,58 @@ impl DIS {
         Ok(())
     }
 
-    pub fn load<T>(&mut self, source_path: T) -> Result<()>
+    fn parse_lex_and_parse_file<T>(source_file: T) -> Result<Vec<Statement>>
     where
         T: Into<String>,
     {
-        self.reset();
-        let mut lexer = Lexer::new(source_path.into());
+        let source_file = source_file.into();
 
+        let mut lexer = Lexer::new(source_file.clone())?;
         let mut tokens = lexer.tokens()?;
+        let mut statements = Vec::new();
 
         while !tokens.is_empty() {
             let statement = Statement::parse(&mut tokens)?;
 
             if let Some(statement) = statement {
-                self.program.push(statement);
+                match statement.op {
+                    Op::INC(_) => {
+                        let filename = match &statement.body[0] {
+                            Token::Identifier { value, .. } => value,
+                            _ => unreachable!(),
+                        };
+
+                        let filename = format!("{}.dis", filename);
+
+                        let source_dir = std::path::Path::new(&source_file).parent().unwrap();
+                        let filepath: String =
+                            source_dir.join(filename).to_str().unwrap().to_string();
+                        let inc_statements = DIS::parse_lex_and_parse_file(filepath)?;
+
+                        statements.extend(inc_statements);
+                    }
+
+                    _ => {
+                        statements.push(statement);
+                    }
+                }
             }
         }
 
-        self.index_labels()?;
+        Ok(statements)
+    }
 
-        // dbg!(&self.program);
+    pub fn load<T>(&mut self, source_path: T) -> Result<()>
+    where
+        T: Into<String>,
+    {
+        self.reset();
+
+        let statements = DIS::parse_lex_and_parse_file(source_path)?;
+
+        self.program = statements;
+
+        self.index_labels()?;
 
         Ok(())
     }
@@ -335,7 +367,18 @@ impl DIS {
             }
 
             Op::RDN(_) => {
-                todo!()
+                let dst = &statement.body[0];
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).unwrap();
+                let val = input.trim().parse::<u16>();
+
+                if val.is_err() {
+                    self.registers.insert("e".to_string(), 1);
+                } else {
+                    self.registers.insert("e".to_string(), 0);
+                    let val = val.unwrap();
+                    self.set_value(dst, val).unwrap();
+                }
             }
 
             Op::RDC(_) => {

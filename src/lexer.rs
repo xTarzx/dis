@@ -78,13 +78,22 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new(source_path: String) -> Lexer {
-        let source = fs::read_to_string(&source_path).expect("Error reading file");
-        Lexer {
+    pub fn new(source_path: String) -> Result<Lexer> {
+        let source = fs::read_to_string(&source_path);
+
+        let source = match source {
+            Ok(source) => source,
+            Err(_) => {
+                eprintln!("Failed to read file: {}", source_path);
+                return Err(());
+            }
+        };
+
+        Ok(Lexer {
             source_path: source_path,
             source: source,
             pos: 0,
-        }
+        })
     }
 
     fn location(&self, pos: usize) -> Location {
