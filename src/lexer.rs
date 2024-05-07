@@ -151,16 +151,16 @@ impl Lexer {
             let loc = self.location(pos);
             self.advance(word.len());
 
-            if word.ends_with(":") {
-                return Some(Token::Label {
-                    value: word[..word.len() - 1].to_string(),
+            if word.starts_with(".") {
+                return Some(Token::Char {
+                    value: word.chars().nth(1).unwrap(),
                     loc: loc,
                 });
             }
 
-            if word.starts_with(".") {
-                return Some(Token::Char {
-                    value: word.chars().nth(1).unwrap(),
+            if word.ends_with(":") {
+                return Some(Token::Label {
+                    value: word[..word.len() - 1].to_string(),
                     loc: loc,
                 });
             }

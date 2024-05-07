@@ -384,7 +384,7 @@ impl Statement {
 
                 "rdc" => {
                     if tokens.len() < 1 {
-                        eprintln!("{loc}: expected one operands for `rdc`", loc = loc);
+                        eprintln!("{loc}: expected one operand for `rdc`", loc = loc);
                         return Err(());
                     }
 
@@ -410,7 +410,46 @@ impl Statement {
                 }
 
                 "rln" => {
-                    todo!()
+                    if tokens.len() < 2 {
+                        eprintln!("{loc}: expected two operands for `rln`", loc = loc);
+                        return Err(());
+                    }
+
+                    let op1 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Memory { .. } => Ok(op),
+                            other => {
+                                eprintln!(
+                                    "{loc}: expected memory, found `{other}`",
+                                    loc = other.loc()
+                                );
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    let op2 = {
+                        let op = tokens.remove(0);
+                        match op {
+                            Token::Number { .. } => Ok(op),
+                            Token::Register { .. } => Ok(op),
+                            Token::Memory { .. } => Ok(op),
+                            other => {
+                                eprintln!(
+                                    "{loc}: expected number, register or memory, found `{other}`",
+                                    loc = other.loc()
+                                );
+                                Err(())
+                            }
+                        }
+                    }?;
+
+                    statement.op = Op::RLN(token);
+                    statement.body.push(op1);
+                    statement.body.push(op2);
+
+                    return Ok(Some(statement));
                 }
 
                 _ => {

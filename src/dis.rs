@@ -330,7 +330,37 @@ impl DIS {
             }
 
             Op::RLN(_) => {
-                todo!()
+                let dst = &statement.body[0];
+                let max_c = &statement.body[1];
+                let mut max_c = self.get_value(max_c).unwrap();
+
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input).unwrap();
+                let mut val = input.trim();
+                if max_c != 0 {
+                    max_c = max_c.min(val.len() as u16);
+                    val = &val[..max_c as usize];
+                }
+
+                self.registers.insert("3".to_string(), val.len() as u16);
+
+                let mem_addr = {
+                    let mem_id = match dst {
+                        Token::Memory { value, .. } => value,
+                        _ => unreachable!(),
+                    };
+
+                    if mem_id.starts_with("#") {
+                        let reg_val = self.registers.get(&mem_id[1..].to_string()).unwrap();
+                        *reg_val as usize
+                    } else {
+                        mem_id.parse::<usize>().unwrap()
+                    }
+                };
+
+                for (i, c) in val.chars().enumerate() {
+                    self.memory[mem_addr + i] = c as u16;
+                }
             }
 
             Op::NOP => {
