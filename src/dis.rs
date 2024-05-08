@@ -24,7 +24,6 @@ pub struct DIS {
 
     die: bool,
 }
-
 impl DIS {
     pub fn new() -> Self {
         let mut registers = HashMap::new();
@@ -132,21 +131,6 @@ impl DIS {
         }
 
         Ok(statements)
-    }
-
-    pub fn load<T>(&mut self, source_path: T) -> Result<()>
-    where
-        T: Into<String>,
-    {
-        self.reset();
-
-        let statements = DIS::parse_lex_and_parse_file(source_path, None)?;
-
-        self.program = statements;
-
-        self.index_labels()?;
-
-        Ok(())
     }
 
     fn mem_addr_from_id(&self, mem_id: &str) -> usize {
@@ -465,6 +449,21 @@ impl DIS {
         }
 
         self.pc += 1;
+    }
+
+    pub fn load<T>(&mut self, source_path: T) -> Result<()>
+    where
+        T: Into<String>,
+    {
+        self.reset();
+
+        let statements = DIS::parse_lex_and_parse_file(source_path, None)?;
+
+        self.program = statements;
+
+        self.index_labels()?;
+
+        Ok(())
     }
 
     pub fn run(&mut self) {
