@@ -98,10 +98,7 @@ impl DIS {
         Ok(())
     }
 
-    fn parse_lex_and_parse_file<T>(
-        source_file: T,
-        mut root: Option<String>,
-    ) -> Result<Vec<Statement>>
+    fn lex_and_parse_file<T>(source_file: T) -> Result<Vec<Statement>>
     where
         T: Into<String>,
     {
@@ -127,20 +124,20 @@ impl DIS {
                         let source_path = std::path::Path::new(&source_file);
                         let source_dir = source_path.parent().unwrap();
                         let filepath: String =
-                            source_dir.join(filename).to_str().unwrap().to_string();
+                            source_dir.join(&filename).to_str().unwrap().to_string();
 
-                        if root.is_some() {
-                            let root_path: String = root.clone().unwrap();
+                        // TODO: find a way to check for include conflicts
+                        // the current implementation does not allow including the same file more than once
 
-                            if source_path.to_str().unwrap() == root_path.as_str() {
-                                eprintln!("{loc}: circular include detected", loc = token.loc());
-                                return Err(());
-                            }
-                        } else {
-                            root = Some(source_path.to_str().unwrap().to_string());
-                        }
+                        // if includes.contains(&filepath) {
+                        //     eprintln!("{loc}: include conflict", loc = token.loc());
+                        //     eprintln!("`{filename}` already included");
+                        //     return Err(());
+                        // } else {
+                        //     includes.push(filepath.clone());
+                        // }
 
-                        let inc_statements = DIS::parse_lex_and_parse_file(filepath, root.clone())?;
+                        let inc_statements = DIS::lex_and_parse_file(filepath)?;
 
                         statements.extend(inc_statements);
                     }
@@ -479,7 +476,7 @@ impl DIS {
     {
         self.reset();
 
-        let statements = DIS::parse_lex_and_parse_file(source_path, None)?;
+        let statements = DIS::lex_and_parse_file(source_path)?;
 
         self.program = statements;
 
