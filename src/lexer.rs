@@ -1,7 +1,7 @@
 use std::fmt;
 use std::fs;
 
-use dis::Result;
+use crate::result::Result;
 
 const KEYWORDS: [&str; 19] = [
     "mov", "add", "sub", "cmp", "jmp", "jlt", "jgt", "jeq", "jne", "run", "ret", "die", "out",
@@ -42,18 +42,6 @@ impl Token {
             Token::Register { loc, .. } => loc,
             Token::Memory { loc, .. } => loc,
             Token::Identifier { loc, .. } => loc,
-        }
-    }
-
-    pub fn typ(&self) -> u8 {
-        match self {
-            Token::Keyword { .. } => 0,
-            Token::Label { .. } => 1,
-            Token::Char { .. } => 2,
-            Token::Number { .. } => 3,
-            Token::Register { .. } => 4,
-            Token::Memory { .. } => 5,
-            Token::Identifier { .. } => 6,
         }
     }
 }

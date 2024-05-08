@@ -7,14 +7,3 @@ default-run = "dis"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sdl2 = "0.36.0"
-
-
-# create new target lexer-test
-[[bin]]
-name = "lexer-test"
-path = "src/lexer-test.rs"
-
-[[bin]]
-name = "dis-test"
-path = "src/dis-test.rs"

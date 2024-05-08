@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::io::Write;
 
 use crate::lexer::{Lexer, Token};
+use crate::result::Result;
 use crate::statement::{Op, Statement};
-use dis::Result;
 
 const MEM_SIZE: usize = 4096;
 

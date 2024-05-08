@@ -1,6 +1,6 @@
 use crate::lexer::Token;
 
-use dis::Result;
+use crate::result::Result;
 
 #[derive(Debug, Clone)]
 pub enum Op {

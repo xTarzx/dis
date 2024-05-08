@@ -2,6 +2,7 @@ use std::{collections::VecDeque, process::ExitCode};
 
 mod dis;
 mod lexer;
+mod result;
 mod statement;
 
 use dis::DIS;
