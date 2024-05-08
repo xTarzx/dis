@@ -1,5 +1,8 @@
 # DIS - Dumb Instruction System
 
+vscode extension - [https://github.com/xTarzx/dis-code](https://github.com/xTarzx/dis-code)
+
+
 ## Syntax
 
 -   COMMENTS: `-`
