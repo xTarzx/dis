@@ -76,6 +76,28 @@ impl DIS {
         Ok(())
     }
 
+    fn ensure_labels(&mut self) -> Result<()> {
+        for statement in &self.program {
+            match &statement.op {
+                Op::JEQ(_) | Op::JNE(_) | Op::JLT(_) | Op::JGT(_) | Op::JMP(_) | Op::RUN(_) => {
+                    let (target_label, loc) = match &statement.body[0] {
+                        Token::Identifier { value, loc } => (value, loc),
+                        _ => unreachable!(),
+                    };
+
+                    if !self.label_map.contains_key(target_label) {
+                        eprintln!("{loc}: undefined label `{target_label}`");
+                        return Err(());
+                    }
+                }
+
+                _ => {}
+            }
+        }
+
+        Ok(())
+    }
+
     fn parse_lex_and_parse_file<T>(
         source_file: T,
         mut root: Option<String>,
@@ -462,6 +484,7 @@ impl DIS {
         self.program = statements;
 
         self.index_labels()?;
+        self.ensure_labels()?;
 
         Ok(())
     }

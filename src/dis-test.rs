@@ -5,8 +5,10 @@ mod statement;
 use dis::DIS;
 
 fn main() {
+    let filepath = "examples/err/mislabel.dis";
+
     let mut dis = DIS::new();
-    match dis.load("examples/debug.dis") {
+    match dis.load(filepath) {
         Ok(_) => {
             println!("Loaded program successfully");
             dis.run();
