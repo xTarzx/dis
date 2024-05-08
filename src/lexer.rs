@@ -228,10 +228,6 @@ impl Lexer {
             tokens.push(token);
         }
 
-        if tokens.is_empty() {
-            return Err(());
-        }
-
         Ok(tokens)
     }
 }
