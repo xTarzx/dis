@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 
 use crate::lexer::{Lexer, Token};
@@ -98,7 +98,11 @@ impl DIS {
         Ok(())
     }
 
-    fn lex_and_parse_file<T>(source_file: T) -> Result<Vec<Statement>>
+    fn lex_and_parse_file<T>(
+        source_file: T,
+        include_map: &mut HashMap<String, HashSet<String>>,
+        parent: Option<String>,
+    ) -> Result<Vec<Statement>>
     where
         T: Into<String>,
     {
@@ -123,21 +127,45 @@ impl DIS {
 
                         let source_path = std::path::Path::new(&source_file);
                         let source_dir = source_path.parent().unwrap();
-                        let filepath: String =
+                        let source_path = source_path.to_str().unwrap().to_string();
+                        let include_filepath: String =
                             source_dir.join(&filename).to_str().unwrap().to_string();
 
                         // TODO: find a way to check for include conflicts
                         // the current implementation does not allow including the same file more than once
 
-                        // if includes.contains(&filepath) {
-                        //     eprintln!("{loc}: include conflict", loc = token.loc());
-                        //     eprintln!("`{filename}` already included");
-                        //     return Err(());
-                        // } else {
-                        //     includes.push(filepath.clone());
-                        // }
+                        // check if the file we are including already includes the file we are including from
 
-                        let inc_statements = DIS::lex_and_parse_file(filepath)?;
+                        if include_map.contains_key(&include_filepath) {
+                            let target_set = include_map.get(&include_filepath).unwrap();
+                            if target_set.contains(&source_path) {
+                                eprintln!(
+                                    "{loc}: circular include detected: `{filename}`",
+                                    loc = token.loc()
+                                );
+                                return Err(());
+                            }
+                        }
+
+                        if !include_map.contains_key(&source_path) {
+                            include_map.insert(source_path.clone(), HashSet::new());
+                        }
+
+                        // add import to set
+                        let include_set = include_map.get_mut(&source_path).unwrap();
+                        include_set.insert(include_filepath.clone());
+
+                        // add import to parent set
+                        if let Some(parent_path) = &parent {
+                            let parent_set = include_map.get_mut(parent_path).unwrap();
+                            parent_set.insert(include_filepath.clone());
+                        }
+
+                        let inc_statements = DIS::lex_and_parse_file(
+                            include_filepath,
+                            include_map,
+                            Some(source_path),
+                        )?;
 
                         statements.extend(inc_statements);
                     }
@@ -476,7 +504,9 @@ impl DIS {
     {
         self.reset();
 
-        let statements = DIS::lex_and_parse_file(source_path)?;
+        let mut include_map = HashMap::new();
+
+        let statements = DIS::lex_and_parse_file(source_path, &mut include_map, None)?;
 
         self.program = statements;
 
