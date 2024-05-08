@@ -77,7 +77,10 @@ impl DIS {
         Ok(())
     }
 
-    fn parse_lex_and_parse_file<T>(source_file: T) -> Result<Vec<Statement>>
+    fn parse_lex_and_parse_file<T>(
+        source_file: T,
+        mut root: Option<String>,
+    ) -> Result<Vec<Statement>>
     where
         T: Into<String>,
     {
@@ -92,7 +95,7 @@ impl DIS {
 
             if let Some(statement) = statement {
                 match statement.op {
-                    Op::INC(_) => {
+                    Op::INC(token) => {
                         let filename = match &statement.body[0] {
                             Token::Identifier { value, .. } => value,
                             _ => unreachable!(),
@@ -100,10 +103,23 @@ impl DIS {
 
                         let filename = format!("{}.dis", filename);
 
-                        let source_dir = std::path::Path::new(&source_file).parent().unwrap();
+                        let source_path = std::path::Path::new(&source_file);
+                        let source_dir = source_path.parent().unwrap();
                         let filepath: String =
                             source_dir.join(filename).to_str().unwrap().to_string();
-                        let inc_statements = DIS::parse_lex_and_parse_file(filepath)?;
+
+                        if root.is_some() {
+                            let root_path: String = root.clone().unwrap();
+
+                            if source_path.to_str().unwrap() == root_path.as_str() {
+                                eprintln!("{loc}: circular include detected", loc = token.loc());
+                                return Err(());
+                            }
+                        } else {
+                            root = Some(source_path.to_str().unwrap().to_string());
+                        }
+
+                        let inc_statements = DIS::parse_lex_and_parse_file(filepath, root.clone())?;
 
                         statements.extend(inc_statements);
                     }
@@ -124,7 +140,7 @@ impl DIS {
     {
         self.reset();
 
-        let statements = DIS::parse_lex_and_parse_file(source_path)?;
+        let statements = DIS::parse_lex_and_parse_file(source_path, None)?;
 
         self.program = statements;
 
