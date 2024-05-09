@@ -131,11 +131,6 @@ impl DIS {
                         let include_filepath: String =
                             source_dir.join(&filename).to_str().unwrap().to_string();
 
-                        // TODO: find a way to check for include conflicts
-                        // the current implementation does not allow including the same file more than once
-
-                        // check if the file we are including already includes the file we are including from
-
                         if include_map.contains_key(&include_filepath) {
                             let target_set = include_map.get(&include_filepath).unwrap();
                             if target_set.contains(&source_path) {
