@@ -1,4 +1,5 @@
 use std::fmt;
+use std::io::BufReader;
 
 use raylib::prelude::*;
 
@@ -117,9 +118,14 @@ fn draw_memory(d: &mut RaylibDrawHandle, dis: &DIS, start: usize, step: usize, m
 const WINDOW_WIDTH: i32 = 800;
 const WINDOW_HEIGHT: i32 = 600;
 
+enum Mode {
+    N,
+    I,
+}
+
 fn main() {
     let mut dis = DIS::new();
-    if dis.load("examples/hello.dis").is_err() {
+    if dis.load("examples/to_upper.dis").is_err() {
         eprintln!("Error loading program");
         return;
     }
@@ -134,12 +140,37 @@ fn main() {
     let mut mem_start = 0;
     let step = 32;
 
-    let mut mode = MemMode::HEX;
+    let mut mem_mode = MemMode::HEX;
+    let mut mode = Mode::N;
 
-    let mut buf = Vec::new();
+    let mut buf: Vec<u8> = Vec::new();
+
+    let mut locked = false;
+    let mut inp = String::new();
+
     while !rl.window_should_close() {
+        let next_is_read = match dis.program.get(dis.pc) {
+            Some(statement) => match statement.op {
+                Op::RDC(_) | Op::RDN(_) | Op::RLN(_) => true,
+                _ => false,
+            },
+            None => false,
+        };
+
         if rl.is_key_pressed(KeyboardKey::KEY_SPACE) {
-            dis.step(&mut buf);
+            if next_is_read {
+                if locked {
+                    let mut reader = BufReader::new(inp.as_bytes());
+                    dis.step(&mut buf, &mut reader);
+                    inp.clear();
+                    locked = false;
+                } else {
+                    mode = Mode::I;
+                }
+            } else {
+                let mut reader = BufReader::new(inp.as_bytes());
+                dis.step(&mut buf, &mut reader);
+            }
         }
 
         if rl.is_key_pressed(KeyboardKey::KEY_LEFT) {
@@ -155,22 +186,52 @@ fn main() {
             }
         }
 
-        if rl.is_key_pressed(KeyboardKey::KEY_C) {
-            mode = MemMode::CHAR;
-        }
+        match mode {
+            Mode::N => {
+                if rl.is_key_pressed(KeyboardKey::KEY_I) {
+                    mode = Mode::I;
+                    locked = false;
+                }
+                if rl.is_key_pressed(KeyboardKey::KEY_C) {
+                    mem_mode = MemMode::CHAR;
+                }
 
-        if rl.is_key_pressed(KeyboardKey::KEY_H) {
-            mode = MemMode::HEX;
+                if rl.is_key_pressed(KeyboardKey::KEY_H) {
+                    mem_mode = MemMode::HEX;
+                }
+
+                if rl.is_key_pressed(KeyboardKey::KEY_R) {
+                    dis.restart_program();
+                }
+            }
+            Mode::I => {
+                if rl.is_key_pressed(KeyboardKey::KEY_ENTER) {
+                    mode = Mode::N;
+                    locked = true;
+                } else if !locked {
+                    if rl.is_key_pressed(KeyboardKey::KEY_BACKSPACE) {
+                        inp.pop();
+                    } else if let Some(c) = rl.get_key_pressed() {
+                        inp.push(c as u8 as char);
+                    }
+                }
+            }
         }
 
         let mut d = rl.begin_drawing(&thread);
         d.clear_background(bg_color);
 
-        let cur_statement = &dis.program[dis.pc.min(dis.program.len() - 1)];
+        let mut pc = dis.pc;
+        if pc >= dis.program.len() {
+            if dis.program.len() > 0 {
+                pc = dis.program.len() - 1;
+            }
+        }
+        let cur_statement = &dis.program[pc];
         d.draw_text(&format_statement(cur_statement), 0, 0, 32, Color::WHITE);
 
         draw_registers(&mut d, &dis);
-        draw_memory(&mut d, &dis, mem_start, step, mode);
+        draw_memory(&mut d, &dis, mem_start, step, mem_mode);
 
         {
             let font_size = 32;
@@ -181,6 +242,22 @@ fn main() {
                 font_size,
                 Color::WHITE,
             );
+        }
+
+        {
+            let font_size = 32;
+
+            let s = match mode {
+                Mode::N => format!(">  {inp}"),
+                Mode::I => format!(">>>{inp}"),
+            };
+
+            let color = match locked {
+                true => Color::RED,
+                false => Color::WHITE,
+            };
+
+            d.draw_text(&s, 0, WINDOW_HEIGHT - font_size * 2, font_size, color);
         }
     }
 }
