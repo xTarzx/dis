@@ -1,5 +1,7 @@
+use std::collections::VecDeque;
 use std::fmt;
 use std::io::BufReader;
+use std::process::ExitCode;
 
 use raylib::prelude::*;
 
@@ -123,11 +125,22 @@ enum Mode {
     I,
 }
 
-fn main() {
+fn main() -> ExitCode {
+    let mut args: VecDeque<String> = std::env::args().collect();
+
+    let program = args.pop_front().unwrap();
+
+    if args.len() < 1 {
+        println!("Usage: {} <program.dis>", program);
+        return ExitCode::FAILURE;
+    }
+
+    let filepath = args.pop_front().unwrap();
+
     let mut dis = DIS::new();
-    if dis.load("examples/to_upper.dis").is_err() {
+    if dis.load(filepath).is_err() {
         eprintln!("Error loading program");
-        return;
+        return ExitCode::FAILURE;
     }
 
     let (mut rl, thread) = raylib::init()
@@ -260,4 +273,6 @@ fn main() {
             d.draw_text(&s, 0, WINDOW_HEIGHT - font_size * 2, font_size, color);
         }
     }
+
+    ExitCode::SUCCESS
 }
