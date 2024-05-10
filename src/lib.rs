@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 
-mod lexer;
-mod statement;
+pub mod lexer;
+pub mod statement;
 
 use lexer::{Lexer, Token};
 use statement::{Op, Statement};
@@ -18,15 +18,15 @@ enum CMP {
 }
 
 pub struct DIS {
-    registers: HashMap<String, u16>,
-    memory: [u16; MEM_SIZE],
+    pub registers: HashMap<String, u16>,
+    pub memory: [u16; MEM_SIZE],
     return_stack: Vec<usize>,
     label_map: HashMap<String, usize>,
-    program: Vec<Statement>,
-    pc: usize,
-    cmp: u8,
+    pub program: Vec<Statement>,
+    pub pc: usize,
+    pub cmp: u8,
 
-    die: bool,
+    pub die: bool,
 }
 impl DIS {
     pub fn new() -> Self {
@@ -234,7 +234,7 @@ impl DIS {
         }
     }
 
-    pub fn step(&mut self) {
+    pub fn step(&mut self, out: &mut dyn Write) {
         if self.die {
             return;
         }
@@ -392,15 +392,13 @@ impl DIS {
             Op::OUT(_) => {
                 let src = &statement.body[0];
                 let val = self.get_value(src).unwrap();
-                print!("{}", val as u8 as char);
-                std::io::stdout().flush().unwrap();
+                write!(out, "{}", val as u8 as char).expect("write error");
             }
 
             Op::PRT(_) => {
                 let src = &statement.body[0];
                 let val = self.get_value(src).unwrap();
-                print!("{}", val);
-                std::io::stdout().flush().unwrap();
+                write!(out, "{}", val).expect("write error");
             }
 
             Op::DBG(_) => {
@@ -410,9 +408,9 @@ impl DIS {
                     Token::Memory { value, .. } => {
                         if value.starts_with("#") {
                             let mem_addr = self.mem_addr_from_id(value);
-                            println!("DBG {src} (&{mem_addr}): {val}");
+                            writeln!(out, "DBG {src} (&{mem_addr}): {val}").expect("write error");
                         } else {
-                            println!("DBG {src}: {val}");
+                            writeln!(out, "DBG {src}: {val}").expect("write error");
                         }
                     }
 
@@ -516,8 +514,9 @@ impl DIS {
     }
 
     pub fn run(&mut self) {
+        let out = &mut std::io::stdout();
         while !self.die {
-            self.step();
+            self.step(out);
         }
     }
 }
