@@ -10,7 +10,6 @@ default-run = "dis"
 itertools = "0.12.1"
 raylib = { version = "3.7.0" }
 
-
 [[bin]]
 name = "vis"
 path = "src/vis/main.rs"
