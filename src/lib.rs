@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 
 pub mod lexer;
 pub mod statement;
@@ -48,9 +48,18 @@ impl DIS {
         }
     }
 
-    fn reset(&mut self) {
+    pub fn restart_program(&mut self) {
         self.registers.iter_mut().for_each(|(_, v)| *v = 0);
         self.memory.iter_mut().for_each(|v| *v = 0);
+        self.return_stack.clear();
+
+        self.pc = 0;
+        self.die = false;
+        self.cmp = 0;
+    }
+
+    fn reset(&mut self) {
+        self.restart_program();
         self.program.clear();
     }
 
@@ -234,7 +243,7 @@ impl DIS {
         }
     }
 
-    pub fn step(&mut self, out: &mut dyn Write) {
+    pub fn step(&mut self, out: &mut dyn Write, inp: &mut dyn BufRead) {
         if self.die {
             return;
         }
@@ -424,8 +433,10 @@ impl DIS {
 
             Op::RDN(_) => {
                 let dst = &statement.body[0];
-                let mut input = String::new();
-                std::io::stdin().read_line(&mut input).unwrap();
+                let mut buf = Vec::new();
+                inp.read_until(b'\n', &mut buf).expect("read error");
+
+                let input = String::from_iter(buf.iter().map(|&c| c as char));
                 let val = input.trim().parse::<u16>();
 
                 if val.is_err() {
@@ -439,8 +450,10 @@ impl DIS {
 
             Op::RDC(_) => {
                 let dst = &statement.body[0];
-                let mut input = String::new();
-                std::io::stdin().read_line(&mut input).unwrap();
+                let mut buf = Vec::new();
+                inp.read_until(b'\n', &mut buf).expect("read error");
+
+                let input = String::from_iter(buf.iter().map(|&c| c as char));
                 let val = input.trim().chars().nth(0);
 
                 if val.is_none() {
@@ -458,8 +471,10 @@ impl DIS {
                 let max_c = &statement.body[1];
                 let mut max_c = self.get_value(max_c).unwrap();
 
-                let mut input = String::new();
-                std::io::stdin().read_line(&mut input).unwrap();
+                let mut buf = Vec::new();
+                inp.read_until(b'\n', &mut buf).expect("read error");
+
+                let input = String::from_iter(buf.iter().map(|&c| c as char));
                 let mut val = input.trim();
                 if max_c != 0 {
                     max_c = max_c.min(val.len() as u16);
@@ -515,8 +530,9 @@ impl DIS {
 
     pub fn run(&mut self) {
         let out = &mut std::io::stdout();
+        let mut inp = BufReader::new(std::io::stdin());
         while !self.die {
-            self.step(out);
+            self.step(out, &mut inp);
         }
     }
 }
