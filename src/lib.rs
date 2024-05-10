@@ -1,9 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 
-use crate::lexer::{Lexer, Token};
-use crate::result::Result;
-use crate::statement::{Op, Statement};
+mod lexer;
+mod statement;
+
+use lexer::{Lexer, Token};
+use statement::{Op, Statement};
+
+pub type Result<T> = std::result::Result<T, ()>;
 
 const MEM_SIZE: usize = 4096;
 

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::fs;
 
-use crate::result::Result;
+use crate::Result;
 
 const KEYWORDS: [&str; 19] = [
     "mov", "add", "sub", "cmp", "jmp", "jlt", "jgt", "jeq", "jne", "run", "ret", "die", "out",
